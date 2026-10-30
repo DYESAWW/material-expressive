@@ -23,9 +23,22 @@
   const $$ = (sel, ctx = doc) => Array.from(ctx.querySelectorAll(sel));
   const clamp01 = (n) => Math.min(1, Math.max(0, n));
   const player = () => (window.Spicetify && window.Spicetify.Player) || null;
+  const elementsMatching = (scope, selector) => {
+    if (!scope || scope.nodeType !== 1) return [];
+    return (scope.matches(selector) ? [scope] : []).concat($$(selector, scope));
+  };
   const libraryApi = () => {
     try { return window.Spicetify.Platform.LibraryAPI; } catch (_) { return null; }
   };
+
+  // The Player wrapper can exist before its internal state is assigned on
+  // macOS. Treat that short window as unavailable instead of letting one
+  // incomplete wrapper abort the whole theme.
+  function playerCall(method, fallback) {
+    const p = player();
+    if (!p || typeof p[method] !== "function") return fallback;
+    try { return p[method](); } catch (_) { return fallback; }
+  }
 
   function debounce(fn, ms) {
     let timer = 0;
@@ -42,6 +55,26 @@
   let lastUserAction = 0;
   ["pointerdown", "keydown"].forEach((type) =>
     doc.addEventListener(type, () => { lastUserAction = performance.now(); }, true)
+  );
+
+  const LIBRARY_COLLAPSED_CONTROL = [
+    '[aria-label*="Expand" i][aria-label*="Library" i]',
+    '[aria-label*="Your Library" i][aria-expanded="false"]',
+    '[data-testid*="expand" i][data-testid*="library" i]',
+  ].join(",");
+
+  function syncLibraryCollapsed() {
+    root.classList.toggle("me3-library-collapsed", !!$(LIBRARY_COLLAPSED_CONTROL));
+  }
+
+  doc.addEventListener(
+    "click",
+    (e) => {
+      if (e.target.closest && e.target.closest(LIBRARY_COLLAPSED_CONTROL)) {
+        setTimeout(syncLibraryCollapsed, 0);
+      }
+    },
+    true
   );
 
   /* ------------------------------------------------------------------
@@ -62,8 +95,8 @@
   };
 
   function detectPlaying() {
-    const p = player();
-    if (p && typeof p.isPlaying === "function") return !!p.isPlaying();
+    const playing = playerCall("isPlaying", null);
+    if (typeof playing === "boolean") return playing;
     return !!$('[data-testid="control-button-playpause"][aria-label="Pause" i]');
   }
 
@@ -77,11 +110,8 @@
     if (seek.dragging) return seek.dragValue;
     if (performance.now() < seek.holdUntil) return seek.holdValue;
 
-    const p = player();
-    if (p && typeof p.getProgressPercent === "function") {
-      const v = p.getProgressPercent();
-      if (Number.isFinite(v)) return clamp01(v);
-    }
+    const v = playerCall("getProgressPercent", null);
+    if (Number.isFinite(v)) return clamp01(v);
 
     const fill = seek.host && $(".x-progressBar-fillColor, .x-progressBar-foreground", seek.host);
     if (fill) {
@@ -143,7 +173,9 @@
       seek.holdValue = seek.dragValue;
       seek.holdUntil = performance.now() + 500;
       const p = player();
-      if (p && typeof p.seek === "function") p.seek(seek.holdValue);
+      try {
+        if (p && typeof p.seek === "function") p.seek(seek.holdValue);
+      } catch (_) { /* player still initialising; keep the visual position */ }
       paintSeek();
     };
 
@@ -292,40 +324,56 @@
     return m ? "spotify:track:" + m[1] : null;
   }
 
+  const pendingLikeRows = new Set();
   let rowSyncBusy = false;
-  async function syncRowLikes() {
+
+  function queueRowLikeSync(scope) {
+    elementsMatching(scope, ".main-trackList-trackListRow").forEach((row) => pendingLikeRows.add(row));
+    const parentRow = scope && scope.closest && scope.closest(".main-trackList-trackListRow");
+    if (parentRow) pendingLikeRows.add(parentRow);
+    if (!rowSyncBusy && pendingLikeRows.size) void syncQueuedRowLikes();
+  }
+
+  async function syncQueuedRowLikes() {
     if (rowSyncBusy) return;
-    const view = $(".main-view-container") || doc;
     rowSyncBusy = true;
     try {
-      const items = [];
-      const need = new Set();
-      $$(".main-trackList-trackListRow", view).forEach((row) => {
-        const btn = $(ROW_LIKE, row);
-        if (!btn) return;
-        const uri = trackUriOfRow(row);
-        items.push({ btn, uri });
-        if (uri && !savedCache.has(uri)) need.add(uri);
-      });
+      while (pendingLikeRows.size) {
+        const rows = Array.from(pendingLikeRows);
+        pendingLikeRows.clear();
+        const items = [];
+        const need = new Set();
 
-      if (need.size) {
-        const list = Array.from(need);
-        const res = await savedByUris(list);
-        if (res) list.forEach((uri, i) => savedCache.set(uri, res[i]));
+        rows.forEach((row) => {
+          if (!row.isConnected) return;
+          const btn = $(ROW_LIKE, row);
+          if (!btn) return;
+          const uri = trackUriOfRow(row);
+          items.push({ btn, uri });
+          if (uri && !savedCache.has(uri)) need.add(uri);
+        });
+
+        if (need.size) {
+          const list = Array.from(need);
+          const res = await savedByUris(list);
+          if (res) list.forEach((uri, i) => savedCache.set(uri, res[i]));
+        }
+
+        items.forEach(({ btn, uri }) =>
+          setLike(btn, uri && savedCache.has(uri) ? savedCache.get(uri) : looksSaved(btn))
+        );
       }
-
-      items.forEach(({ btn, uri }) =>
-        setLike(btn, uri && savedCache.has(uri) ? savedCache.get(uri) : looksSaved(btn))
-      );
     } finally {
       rowSyncBusy = false;
+      if (pendingLikeRows.size) void syncQueuedRowLikes();
     }
   }
 
-  function syncOtherLikes() {
-    const view = $(".main-view-container") || doc;
+  function syncOtherLikes(scope) {
+    const view = scope || $(".main-view-container") || doc.body;
+    if (!view) return;
     const np = nowPlayingLikeButton();
-    $$(OTHER_LIKE, view).forEach((btn) => {
+    elementsMatching(view, OTHER_LIKE).forEach((btn) => {
       if (btn === np || btn.closest(".main-trackList-trackListRow")) return;
       setLike(btn, looksSaved(btn));
     });
@@ -333,8 +381,10 @@
 
   function refreshAllLikes() {
     savedCache.clear();
+    const view = $(".main-view-container") || doc.body;
     syncNowPlayingLike();
-    syncRowLikes();
+    syncOtherLikes(view);
+    queueRowLikeSync(view);
   }
 
   function scheduleLikeRefresh(delay = 500) {
@@ -370,24 +420,51 @@
     '.main-trackList-trackList, .main-entityHeader-container, .main-actionBar-ActionBar, .main-topBar-container, [role="grid"]';
   const NOT_A_SHELF_BLOCK = ".main-trackList-trackList, .main-entityHeader-container, .main-actionBar-ActionBar";
   const shelfOfLink = new WeakMap();
+  const shelfOfContainer = new WeakMap();
 
   function resolveShelf(link) {
     let el = link.parentElement;
+    const ancestry = [];
     for (let hops = 0; el && hops < 7; hops++, el = el.parentElement) {
       if (el.matches(".main-view-container, .Root__main-view, main")) return null;
+      const knownShelf = shelfOfContainer.get(el);
+      if (knownShelf && knownShelf.isConnected && knownShelf.contains(link)) return knownShelf;
+
+      ancestry.push(el);
       const headings = el.getElementsByTagName("h2").length;
-      if (headings === 1) return el.querySelector(NOT_A_SHELF_BLOCK) ? null : el;
+      if (headings === 1) {
+        if (el.querySelector(NOT_A_SHELF_BLOCK)) return null;
+        ancestry.forEach((node) => shelfOfContainer.set(node, el));
+        return el;
+      }
       if (headings > 1) return null;
     }
     return null;
   }
 
-  function tagShelves() {
-    const view = $(".main-view-container");
+  function tagShelvesIn(scope) {
+    const shelves = new Set();
+
+    elementsMatching(scope, CARD_LINK).forEach((link) => {
+      if (link.closest(NOT_A_SHELF_ZONE)) return;
+      let shelf = shelfOfLink.get(link);
+      if (!(shelf && shelf.isConnected && shelf.contains(link))) {
+        shelf = resolveShelf(link);
+        shelfOfLink.set(link, shelf);
+      }
+      if (shelf) shelves.add(shelf);
+    });
+
+    shelves.forEach((el) => {
+      if (!el.hasAttribute("data-me3-shelf")) el.setAttribute("data-me3-shelf", "");
+    });
+  }
+
+  function tagShelves(view) {
     if (!view) return;
     const shelves = new Set();
 
-    $$(CARD_LINK, view).forEach((link) => {
+    elementsMatching(view, CARD_LINK).forEach((link) => {
       if (link.closest(NOT_A_SHELF_ZONE)) return;
       let shelf = shelfOfLink.get(link);
       if (!(shelf && shelf.isConnected && shelf.contains(link))) {
@@ -522,10 +599,12 @@
     true
   );
 
-  function tagTrackLists() {
-    const view = $(".main-view-container") || $(".Root__main-view");
-    if (!view) return;
-    $$(".main-trackList-trackList", view).forEach((list) => {
+  function tagTrackLists(scope) {
+    if (!scope) return;
+    const lists = new Set(elementsMatching(scope, ".main-trackList-trackList"));
+    const parentList = scope.closest && scope.closest(".main-trackList-trackList");
+    if (parentList) lists.add(parentList);
+    lists.forEach((list) => {
       const hasArtwork = !!list.querySelector(ART_SEL);
       if (hasArtwork !== list.hasAttribute("data-me3-art")) list.toggleAttribute("data-me3-art", hasArtwork);
     });
@@ -545,15 +624,19 @@
   function playerModes(shuffleBtn) {
     const P = player();
     if (!P || typeof P.getShuffle !== "function" || typeof P.getRepeat !== "function") return null;
-    const data = P.data || {};
-    const smart = data.smartShuffle !== undefined
-      ? !!data.smartShuffle
-      : /disable smart shuffle/i.test(shuffleBtn.getAttribute("aria-label") || "");
-    const repeat = P.getRepeat();
-    return {
-      shuffle: smart ? "smart" : P.getShuffle() ? "on" : "off",
-      repeat: repeat === 2 || repeat === "track" ? "one" : repeat === 1 || repeat === "context" ? "all" : "off",
-    };
+    try {
+      const data = P.data || {};
+      const smart = data.smartShuffle !== undefined
+        ? !!data.smartShuffle
+        : /disable smart shuffle/i.test(shuffleBtn.getAttribute("aria-label") || "");
+      const repeat = P.getRepeat();
+      return {
+        shuffle: smart ? "smart" : P.getShuffle() ? "on" : "off",
+        repeat: repeat === 2 || repeat === "track" ? "one" : repeat === 1 || repeat === "context" ? "all" : "off",
+      };
+    } catch (_) {
+      return null;
+    }
   }
 
   function syncControls() {
@@ -583,13 +666,44 @@
   /* ------------------------------------------------------------------
      Wiring: observe ONLY the main view and the player bar
      ------------------------------------------------------------------ */
+  const pendingMainScopes = new Set();
+  function queueMainScope(node) {
+    const scope = node && node.nodeType === 1 ? node : null;
+    if (!scope) return;
+    for (const queued of pendingMainScopes) {
+      if (!queued.isConnected) pendingMainScopes.delete(queued);
+      else if (queued.contains(scope)) return;
+      else if (scope.contains(queued)) pendingMainScopes.delete(queued);
+    }
+    pendingMainScopes.add(scope);
+  }
+
   const mainPass = debounce(() => {
-    tagShelves();
-    tagTrackLists();
-    syncOtherLikes();
-    syncRowLikes();
+    const scopes = Array.from(pendingMainScopes);
+    pendingMainScopes.clear();
+    scopes.forEach((scope) => {
+      if (!scope.isConnected) return;
+      tagShelvesIn(scope);
+      tagTrackLists(scope);
+      syncOtherLikes(scope);
+      queueRowLikeSync(scope);
+    });
     scheduleArtUpdate();
-  }, 250);
+  }, 100);
+
+  function onMainMutations(records) {
+    records.forEach((record) => record.addedNodes.forEach(queueMainScope));
+    if (pendingMainScopes.size) mainPass();
+  }
+
+  function initialiseMain(rootEl) {
+    const view = $(".main-view-container", rootEl) || rootEl;
+    tagShelves(view);
+    tagTrackLists(view);
+    syncOtherLikes(view);
+    queueRowLikeSync(view);
+    scheduleArtUpdate();
+  }
 
   const playerPass = debounce(() => {
     mountSeek();
@@ -599,17 +713,18 @@
   }, 150);
 
   const watched = new WeakSet();
-  function watch(selector, handler) {
+  function watch(selector, handler, initialise = handler) {
     const el = $(selector);
     if (!el || watched.has(el)) return;
     watched.add(el);
     new MutationObserver(handler).observe(el, { childList: true, subtree: true });
-    handler();
+    initialise(el);
   }
 
   function watchRoots() {
-    watch(".Root__main-view", mainPass);
+    watch(".Root__main-view", onMainMutations, initialiseMain);
     watch(".Root__now-playing-bar", playerPass);
+    syncLibraryCollapsed();
   }
 
   let apiBound = false;
@@ -651,7 +766,7 @@
 
   function start() {
     watchRoots();
-    setInterval(() => { watchRoots(); syncControls(); }, 2000); // roots can be re-created when layouts change
+    setInterval(watchRoots, 2000); // roots can be re-created when layouts change
     bindSpicetify();
   }
 

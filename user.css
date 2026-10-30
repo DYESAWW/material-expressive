@@ -215,6 +215,21 @@
   background-image: none !important;
 }
 
+/* Current Home grid carousels use a separate wrapper for their side overlays.
+   Keep the scroll-edge cue, but fade it with the theme surface instead of
+   Spotify's black gradient. */
+.W7ETd1fZHm0MV0Jqtjeu.wlt29eHDgK8xhXU4uIYM.VdoAFBSgMkSkMmW0NgAk::before,
+.W7ETd1fZHm0MV0Jqtjeu.wlt29eHDgK8xhXU4uIYM.VdoAFBSgMkSkMmW0NgAk > .JIrO_Kklclbf_mnPX9Dh::before {
+  background-color: transparent !important;
+  background-image: linear-gradient(90deg, var(--me3-surface), transparent) !important;
+}
+
+.W7ETd1fZHm0MV0Jqtjeu.wlt29eHDgK8xhXU4uIYM.VdoAFBSgMkSkMmW0NgAk::after,
+.W7ETd1fZHm0MV0Jqtjeu.wlt29eHDgK8xhXU4uIYM.VdoAFBSgMkSkMmW0NgAk > .JIrO_Kklclbf_mnPX9Dh::after {
+  background-color: transparent !important;
+  background-image: linear-gradient(270deg, var(--me3-surface), transparent) !important;
+}
+
 /* Carousel arrows */
 .x-carousel-button {
   color: var(--me3-text) !important;
@@ -231,13 +246,14 @@ html {
   font-optical-sizing: auto;   /* Roboto Flex opsz axis follows the font size */
 }
 
-body {
-  font-weight: var(--me3-weight-body);
-}
-
-/* One flat universal rule: cheap to match (no :not() / ancestor walks) */
-* {
+body,
+button,
+input,
+textarea,
+select,
+[contenteditable="true"] {
   font-family: var(--me3-font) !important;
+  font-weight: var(--me3-weight-body);
 }
 
 /* Spotify (Encore) sets its own weight per text style; push each one up. */
@@ -334,6 +350,29 @@ button,
 .main-filterChips-filterChip,
 .main-home-home button[role="tab"] {
   border-radius: var(--me3-radius-pill) !important;
+}
+
+/* Artist follow controls are filled M3 buttons, using the same mauve
+   container and foreground as the active player controls. */
+.main-entityHeader-container :is(button, [role="button"]):is(
+  [data-testid*="follow" i],
+  [aria-label="Follow" i],
+  [aria-label="Following" i]
+) {
+  color: var(--me3-on-mauve-container) !important;
+  background: var(--me3-mauve-container) !important;
+  border: 0 !important;
+  border-radius: var(--me3-radius-pill) !important;
+  box-shadow: none !important;
+}
+
+.main-entityHeader-container :is(button, [role="button"]):is(
+  [data-testid*="follow" i],
+  [aria-label="Follow" i],
+  [aria-label="Following" i]
+):is(:hover, :focus-visible) {
+  color: var(--me3-crust) !important;
+  background: var(--me3-mauve) !important;
 }
 
 button:focus-visible,
@@ -1251,6 +1290,42 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
        `content` line to the table, and add the icon name to icon_names in
        the font @import at the top (the names must stay alphabetical).
    --------------------------------------------------------------------- */
+/* Playlist and album action bars use a different shuffle button from the
+   player transport. Give both current markup forms the same M3 glyph. */
+.main-actionBar-ActionBar :is(button, [role="button"]):is(
+  [data-testid*="shuffle" i],
+  [aria-label*="shuffle" i]
+) {
+  --me3-fill: 0;
+  --me3-wght: 500;
+}
+
+.main-actionBar-ActionBar :is(button, [role="button"]):is(
+  [data-testid*="shuffle" i],
+  [aria-label*="shuffle" i]
+) > * {
+  display: none !important;
+}
+
+.main-actionBar-ActionBar :is(button, [role="button"]):is(
+  [data-testid*="shuffle" i],
+  [aria-label*="shuffle" i]
+)::before {
+  content: "shuffle" !important;
+  display: inline-grid;
+  place-items: center;
+  width: 1em;
+  height: 1em;
+  font-family: "Material Symbols Rounded", sans-serif !important;
+  font-size: 22px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1;
+  font-feature-settings: "liga";
+  font-variation-settings: "FILL" var(--me3-fill), "wght" var(--me3-wght), "GRAD" 0, "opsz" 24;
+  -webkit-font-smoothing: antialiased;
+}
+
 /* hide Spotify's SVG so icons never double up */
 :is(button, [role="button"], a):is(
   [aria-label="Play" i],
@@ -1313,9 +1388,61 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   display: none !important;
 }
 
-/* one glyph recipe for every Material Symbol the theme draws: label-mapped
-   buttons, the like heart (section 11) and the artwork overlay (section 9) */
-:is(button, [role="button"], a)[aria-label]::before,
+/* One glyph recipe for controls that actually receive a Material label. Do
+   not create a pseudo-element for every labelled card, link, and button on
+   Home; those account for most of the view's DOM churn. */
+:is(button, [role="button"], a):is(
+  [aria-label^="Play" i],
+  [aria-label^="Pause" i],
+  [aria-label="Next" i],
+  [aria-label="Next track" i],
+  [aria-label="Previous" i],
+  [aria-label="Previous track" i],
+  [aria-label*="shuffle" i],
+  [aria-label="Repeat" i],
+  [aria-label="Enable repeat" i],
+  [aria-label="Enable repeat one" i],
+  [aria-label="Disable repeat" i],
+  [aria-label="Volume" i],
+  [aria-label="Mute" i],
+  [aria-label="Unmute" i],
+  [aria-label="Queue" i],
+  [aria-label="Lyrics" i],
+  [aria-label="Connect to a device" i],
+  [aria-label="Miniplayer" i],
+  [aria-label="Open Miniplayer" i],
+  [aria-label="Close Miniplayer" i],
+  [aria-label="Full screen" i],
+  [aria-label="Enter full screen" i],
+  [aria-label="Exit full screen" i],
+  [aria-label="Now playing view" i],
+  [aria-label="Save to Your Library" i],
+  [aria-label="Add to Your Library" i],
+  [aria-label="Add to Liked Songs" i],
+  [aria-label="Remove from Your Library" i],
+  [aria-label="Remove from Liked Songs" i],
+  [aria-label="Add to playlist" i],
+  [aria-label="Search" i],
+  [aria-label="Search in Your Library" i],
+  [aria-label="What's New" i],
+  [aria-label="What’s New" i],
+  [aria-label="Friend Activity" i],
+  [aria-label="Home" i],
+  [aria-label="Explore" i],
+  [aria-label="Browse" i],
+  [aria-label="Your Library" i],
+  [aria-label="Collapse Your Library" i],
+  [aria-label="Expand Your Library" i],
+  [aria-label="Open Your Library" i],
+  [aria-label="Create playlist or folder" i],
+  [aria-label="Create" i],
+  [aria-label="Go back" i],
+  [aria-label="Go forward" i],
+  [aria-label="Download" i],
+  [aria-label^="More options" i],
+  [aria-label="Close" i],
+  [aria-label="Clear search field" i]
+)::before,
 button[data-me3-ctl]::before,
 [data-me3-like]::before,
 .me3-art-play__glyph {
@@ -1329,7 +1456,58 @@ button[data-me3-ctl]::before,
   -webkit-font-smoothing: antialiased;
 }
 
-:is(button, [role="button"], a)[aria-label]::before,
+:is(button, [role="button"], a):is(
+  [aria-label^="Play" i],
+  [aria-label^="Pause" i],
+  [aria-label="Next" i],
+  [aria-label="Next track" i],
+  [aria-label="Previous" i],
+  [aria-label="Previous track" i],
+  [aria-label*="shuffle" i],
+  [aria-label="Repeat" i],
+  [aria-label="Enable repeat" i],
+  [aria-label="Enable repeat one" i],
+  [aria-label="Disable repeat" i],
+  [aria-label="Volume" i],
+  [aria-label="Mute" i],
+  [aria-label="Unmute" i],
+  [aria-label="Queue" i],
+  [aria-label="Lyrics" i],
+  [aria-label="Connect to a device" i],
+  [aria-label="Miniplayer" i],
+  [aria-label="Open Miniplayer" i],
+  [aria-label="Close Miniplayer" i],
+  [aria-label="Full screen" i],
+  [aria-label="Enter full screen" i],
+  [aria-label="Exit full screen" i],
+  [aria-label="Now playing view" i],
+  [aria-label="Save to Your Library" i],
+  [aria-label="Add to Your Library" i],
+  [aria-label="Add to Liked Songs" i],
+  [aria-label="Remove from Your Library" i],
+  [aria-label="Remove from Liked Songs" i],
+  [aria-label="Add to playlist" i],
+  [aria-label="Search" i],
+  [aria-label="Search in Your Library" i],
+  [aria-label="What's New" i],
+  [aria-label="What’s New" i],
+  [aria-label="Friend Activity" i],
+  [aria-label="Home" i],
+  [aria-label="Explore" i],
+  [aria-label="Browse" i],
+  [aria-label="Your Library" i],
+  [aria-label="Collapse Your Library" i],
+  [aria-label="Expand Your Library" i],
+  [aria-label="Open Your Library" i],
+  [aria-label="Create playlist or folder" i],
+  [aria-label="Create" i],
+  [aria-label="Go back" i],
+  [aria-label="Go forward" i],
+  [aria-label="Download" i],
+  [aria-label^="More options" i],
+  [aria-label="Close" i],
+  [aria-label="Clear search field" i]
+)::before,
 button[data-me3-ctl]::before {
   display: inline-grid;
   place-items: center;
@@ -1468,6 +1646,8 @@ button[data-me3-ctl]::before {
    12. Toasts: themed instead of white
    --------------------------------------------------------------------- */
 .notistack-Snackbar,
+.notistack-MuiContent,
+.notistack-Snackbar [role="alert"],
 .notistack-Snackbar :is(.encore-inverted-light-set, .encore-dark-theme, .encore-base-set) {
   --background-base: var(--me3-surface) !important;
   --background-highlight: var(--me3-surface-1) !important;
@@ -1479,6 +1659,16 @@ button[data-me3-ctl]::before {
   --essential-base: var(--me3-text) !important;
   --essential-subdued: var(--me3-subtext) !important;
   color: var(--me3-text) !important;
+}
+
+.notistack-MuiContent,
+.notistack-Snackbar [role="alert"] {
+  color: var(--me3-text) !important;
+  background: var(--me3-surface) !important;
+  background-image: none !important;
+  border: 1px solid rgb(203 166 247 / 22%) !important;
+  border-radius: var(--me3-radius-medium) !important;
+  box-shadow: 0 12px 32px rgb(17 17 27 / 45%) !important;
 }
 
 .notistack-Snackbar :is(.BoxComponent-box-elevated, [class*="BoxComponent"]) {
@@ -1498,9 +1688,11 @@ button[data-me3-ctl]::before {
   color: var(--me3-mauve) !important;
 }
 
+.notistack-MuiContent-error,
+.notistack-Snackbar [data-variant="error"],
 .notistack-Snackbar :is(.notistack-MuiContent-error, [data-variant="error"]) :is(.BoxComponent-box-elevated, [class*="BoxComponent"]),
 .notistack-Snackbar:is(.notistack-MuiContent-error, [data-variant="error"]) :is(.BoxComponent-box-elevated, [class*="BoxComponent"]) {
-  border-color: var(--me3-red);
+  border-color: var(--me3-red) !important;
 }
 
 /* Spotify's coach-mark bubbles */
@@ -1598,30 +1790,17 @@ button[data-me3-ctl]::before {
 
 *::-webkit-scrollbar-corner { background: transparent; }
 
-/* In the folded state Spotify moves the toggle outside the scrolling list in
-   some layouts, so detect the state from the document and hide only the
-   library panel's scrollbar implementations. */
-body:has(:is(
-  [aria-label*="Expand" i][aria-label*="Library" i],
-  [aria-label*="Your Library" i][aria-expanded="false"],
-  [data-testid*="expand" i][data-testid*="library" i]
-)) :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer) .os-scrollbar {
+/* The theme script writes this class when the library is folded. Keeping the
+   state on <html> avoids a document-wide :has() invalidation on Home updates. */
+html.me3-library-collapsed :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer) .os-scrollbar {
   display: none !important;
 }
 
-body:has(:is(
-  [aria-label*="Expand" i][aria-label*="Library" i],
-  [aria-label*="Your Library" i][aria-expanded="false"],
-  [data-testid*="expand" i][data-testid*="library" i]
-)) :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer, :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer) *) {
+html.me3-library-collapsed :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer, :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer) *) {
   scrollbar-width: none !important;
 }
 
-body:has(:is(
-  [aria-label*="Expand" i][aria-label*="Library" i],
-  [aria-label*="Your Library" i][aria-expanded="false"],
-  [data-testid*="expand" i][data-testid*="library" i]
-)) :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer, :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer) *)::-webkit-scrollbar {
+html.me3-library-collapsed :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer, :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer) *)::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
