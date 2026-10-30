@@ -1,4 +1,4 @@
-![](preview.png)
+![](preview/preview.png)
 
 <div align = center>
 <strong>
