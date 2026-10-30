@@ -7,6 +7,7 @@
    2. Like state           data-me3-like="on|off" on every like / save button
    3. Carousel surfaces    data-me3-shelf on blocks that hold one heading + cards
    4. Play on artwork      one floating overlay over the hovered row's artwork
+   5. Player controls      data-me3-ctl on the five transport buttons, by position
 
    Performance: the old version watched the WHOLE document and measured layout
    every 200 ms, which fought with the virtualised sidebar list while it
@@ -531,6 +532,23 @@
   }
 
   /* ------------------------------------------------------------------
+     5. PLAYER CONTROLS
+        The transport buttons are tagged by position (shuffle, previous,
+        play / pause, next, repeat) so user.css can draw their glyphs without
+        relying on Spotify's labels, which change between versions. If the
+        count is not exactly five nothing is tagged and Spotify's icons stay.
+     ------------------------------------------------------------------ */
+  const CONTROL_ROLES = ["shuffle", "prev", "play", "next", "repeat"];
+
+  function tagControls() {
+    $$(".player-controls__buttons").forEach((row) => {
+      const buttons = $$("button", row);
+      if (buttons.length !== CONTROL_ROLES.length) return;
+      buttons.forEach((btn, i) => setData(btn, "me3Ctl", CONTROL_ROLES[i]));
+    });
+  }
+
+  /* ------------------------------------------------------------------
      Wiring: observe ONLY the main view and the player bar
      ------------------------------------------------------------------ */
   const mainPass = debounce(() => {
@@ -543,6 +561,7 @@
 
   const playerPass = debounce(() => {
     mountSeek();
+    tagControls();
     const np = nowPlayingLikeButton();
     if (np && !np.hasAttribute("data-me3-like")) syncNowPlayingLike();
   }, 150);

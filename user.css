@@ -921,7 +921,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
    7c. Player controls: rounded-square tiles around a wide play/pause
        Shuffle, previous, next and repeat are surface-coloured tiles; shuffle
        and repeat switch to the mauve container while on. Play/pause is the
-       wide mauve-container tile. Glyphs come from section 10 (outlined and a
+       wide mauve-container tile. Glyphs come from section 10 / theme.js (outlined and a
        touch bolder, as in the reference). The bar is excluded from section 8's cookie.
    --------------------------------------------------------------------- */
 .player-controls__buttons {
@@ -959,8 +959,17 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   transition: background-color 180ms ease, box-shadow 180ms ease, scale 240ms var(--me3-ease-spring) !important;
 }
 
+/* Glyphs by position: theme.js tags the five buttons (data-me3-ctl), so a tile
+   never depends on Spotify's label wording or markup. A button that is neither
+   tagged nor label-matched keeps Spotify's own icon rather than going blank. */
+.Root__now-playing-bar .player-controls__buttons button[data-me3-ctl="shuffle"]::before { content: "shuffle"; }
+.Root__now-playing-bar .player-controls__buttons button[data-me3-ctl="prev"]::before { content: "skip_previous"; }
+.Root__now-playing-bar .player-controls__buttons button[data-me3-ctl="next"]::before { content: "skip_next"; }
+.Root__now-playing-bar .player-controls__buttons button[data-me3-ctl="repeat"]::before { content: "repeat"; }
+.Root__now-playing-bar .player-controls__buttons button[data-me3-ctl="repeat"]:is([aria-label="Disable repeat" i], [aria-checked="mixed"])::before { content: "repeat_one"; }
+
 /* native icon wrappers and Spotify's "active dot": only our glyph stays */
-.Root__now-playing-bar .player-controls__buttons button > * {
+.Root__now-playing-bar .player-controls__buttons :is(button[data-me3-ctl], button[data-testid="control-button-playpause"]) > * {
   display: none !important;
 }
 
@@ -1272,6 +1281,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
 /* one glyph recipe for every Material Symbol the theme draws: label-mapped
    buttons, the like heart (section 11) and the artwork overlay (section 9) */
 :is(button, [role="button"], a)[aria-label]::before,
+button[data-me3-ctl]::before,
 [data-me3-like]::before,
 .me3-art-play__glyph {
   font-family: "Material Symbols Rounded", sans-serif !important;
@@ -1284,7 +1294,8 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   -webkit-font-smoothing: antialiased;
 }
 
-:is(button, [role="button"], a)[aria-label]::before {
+:is(button, [role="button"], a)[aria-label]::before,
+button[data-me3-ctl]::before {
   display: inline-grid;
   place-items: center;
   font-size: 22px;
