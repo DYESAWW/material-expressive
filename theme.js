@@ -193,25 +193,26 @@
         - track rows: asked from the library API by track URI (batched, cached)
         - everything else: read from the button itself
      ------------------------------------------------------------------ */
+  const SAVE_LABELS = [
+    "Add to Liked Songs",
+    "Remove from Liked Songs",
+    "Save to Your Library",
+    "Remove from Your Library",
+  ].map((label) => `button[aria-label="${label}" i]`);
+
   const ROW_LIKE = [
     ".main-trackList-rowHeartButton",
     'button[data-testid="add-to-playlist-button"]',
     'button[aria-label="Add to playlist" i]',
-    'button[aria-label="Add to Liked Songs" i]',
-    'button[aria-label="Remove from Liked Songs" i]',
-    'button[aria-label="Save to Your Library" i]',
-    'button[aria-label="Remove from Your Library" i]',
+    ...SAVE_LABELS,
   ].join(",");
 
   const OTHER_LIKE = [
     ".control-button-heart",
     ".main-addButton-button",
     'button[data-testid="add-button"]',
-    'button[aria-label="Save to Your Library" i]',
     'button[aria-label="Add to Your Library" i]',
-    'button[aria-label="Add to Liked Songs" i]',
-    'button[aria-label="Remove from Your Library" i]',
-    'button[aria-label="Remove from Liked Songs" i]',
+    ...SAVE_LABELS,
   ].join(",");
 
   const ANY_LIKE_CLICK = ROW_LIKE + "," + OTHER_LIKE + ",.main-nowPlayingWidget-plusButton,.main-nowPlayingWidget-plusButton *";
@@ -570,19 +571,17 @@
     if (apiBound) return;
     apiBound = true;
 
-    S.Player.addEventListener("onplaypause", () => {
+    const resync = () => {
       seek.playing = detectPlaying();
       paintSeek();
       kickSeek();
       scheduleArtUpdate();
-    });
+    };
+    S.Player.addEventListener("onplaypause", resync);
     S.Player.addEventListener("onprogress", paintSeek);
     S.Player.addEventListener("songchange", () => {
-      seek.playing = detectPlaying();
-      paintSeek();
-      kickSeek();
+      resync();
       syncNowPlayingLike();
-      scheduleArtUpdate();
     });
 
     try {

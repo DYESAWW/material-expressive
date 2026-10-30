@@ -8,7 +8,7 @@
    rely on Spotify's own class names.
    ===================================================================== */
 
-@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:FILL,GRAD,opsz,wght@0..1,-25..200,20..48,300..700&icon_names=add,chevron_left,chevron_right,close,devices,download,explore,favorite,fullscreen,fullscreen_exit,home,library_music,lyrics,more_horiz,pause,picture_in_picture_alt,play_arrow,playlist_add,queue_music,repeat,repeat_one,right_panel_open,search,shuffle,skip_next,skip_previous,volume_off,volume_up&display=block");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:FILL,GRAD,opsz,wght@0..1,-25..200,20..48,300..700&icon_names=add,chevron_left,chevron_right,close,devices,download,explore,favorite,fullscreen,fullscreen_exit,group,home,library_music,lyrics,more_horiz,notifications,pause,picture_in_picture_alt,play_arrow,playlist_add,queue_music,repeat,repeat_one,right_panel_open,search,shuffle,skip_next,skip_previous,volume_off,volume_up&display=block");
 @import url("https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400..800&display=swap");
 
 /* ---------------------------------------------------------------------
@@ -28,6 +28,8 @@
   --me3-lavender: #b4befe;
   --me3-pink: #f5c2e7;
   --me3-red: #f38ba8;
+  --me3-mauve-container: #55486c;     /* mauve over mantle: M3 "primary container" */
+  --me3-on-mauve-container: #eadcfd;
 
   /* M3 shape scale */
   --me3-radius-small: 12px;
@@ -38,6 +40,10 @@
   /* M3 Expressive motion */
   --me3-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
   --me3-ease-std: cubic-bezier(.2, 0, 0, 1);
+
+  /* Player controls (section 7c): square tile size and the wide play/pause */
+  --me3-ctrl-size: 40px;
+  --me3-ctrl-wide: 120px;
 
   /* Typography: every font number in the theme comes from here */
   --me3-font: "Roboto Flex", "Roboto", sans-serif;
@@ -540,10 +546,6 @@ input:focus-visible {
   transition: none !important;
 }
 
-.Root__now-playing-bar [data-testid="cover-art-button"]:hover {
-  transform: none !important;
-}
-
 .Root__now-playing-bar [data-testid="cover-art-button"] > div,
 .Root__now-playing-bar [data-testid="cover-art-button"] [aria-hidden="true"] {
   position: relative !important;
@@ -820,6 +822,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
 .me3-seek {
   --me3-seek-gap: 6px;
   --me3-seek-thumb: 4px;
+  --me3-seek-wave-period: 2.2s;   /* one wave cycle; larger = slower */
   position: absolute;
   inset: 0;
   z-index: 2;
@@ -856,7 +859,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   mask-size: 28px 14px;
   -webkit-mask-position: 0 0;
   mask-position: 0 0;
-  animation: me3-wave 1.1s linear infinite;
+  animation: me3-wave var(--me3-seek-wave-period) linear infinite;
 }
 
 @keyframes me3-wave {
@@ -915,10 +918,109 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
 .me3-seek[data-dragging="true"] .me3-seek__thumb { width: 2px; background: var(--me3-lavender); }
 
 /* ---------------------------------------------------------------------
+   7c. Player controls: rounded-square tiles around a wide play/pause
+       Shuffle, previous, next and repeat are surface-coloured tiles; shuffle
+       and repeat switch to the mauve container while on. Play/pause is the
+       wide mauve-container tile. Glyphs come from section 10 (outlined and a
+       touch bolder, as in the reference). The bar is excluded from section 8's cookie.
+   --------------------------------------------------------------------- */
+.player-controls__buttons {
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.player-controls__buttons :is(.player-controls__left, .player-controls__right) {
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.Root__now-playing-bar .player-controls__buttons button {
+  --me3-fill: 0;
+  --me3-wght: 500;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto;
+  width: var(--me3-ctrl-size) !important;
+  min-width: var(--me3-ctrl-size) !important;
+  height: var(--me3-ctrl-size) !important;
+  min-height: var(--me3-ctrl-size) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: var(--me3-text) !important;
+  background: var(--me3-surface) !important;
+  border: 0 !important;
+  border-radius: var(--me3-radius-small) !important;
+  box-shadow: none !important;
+  transition: background-color 180ms ease, box-shadow 180ms ease, scale 240ms var(--me3-ease-spring) !important;
+}
+
+/* native icon wrappers and Spotify's "active dot": only our glyph stays */
+.Root__now-playing-bar .player-controls__buttons button > * {
+  display: none !important;
+}
+
+.Root__now-playing-bar .player-controls__buttons button::after {
+  content: none !important;
+}
+
+.Root__now-playing-bar .player-controls__buttons button::before {
+  font-size: 22px;
+}
+
+/* play / pause */
+.Root__now-playing-bar .player-controls__buttons button[data-testid="control-button-playpause"] {
+  width: var(--me3-ctrl-wide) !important;
+  min-width: var(--me3-ctrl-wide) !important;
+}
+
+.Root__now-playing-bar .player-controls__buttons button[data-testid="control-button-playpause"]::before {
+  font-size: 28px;
+}
+
+/* play / pause, and shuffle / repeat while switched on */
+.Root__now-playing-bar .player-controls__buttons button:is(
+  [data-testid="control-button-playpause"],
+  [aria-checked="true"], [aria-checked="mixed"], .control-button--active,
+  [aria-label="Enable smart shuffle" i], [aria-label="Disable smart shuffle" i], [aria-label="Disable shuffle" i],
+  [aria-label="Enable repeat one" i], [aria-label="Disable repeat" i]
+) {
+  color: var(--me3-on-mauve-container) !important;
+  background: var(--me3-mauve-container) !important;
+}
+
+/* state layers: 8% on hover / focus, 14% and a small squeeze while pressed */
+.Root__now-playing-bar .player-controls__buttons button:is(:hover, :focus-visible) {
+  box-shadow: inset 0 0 0 999px rgb(255 255 255 / 8%) !important;
+}
+
+.Root__now-playing-bar .player-controls__buttons button:active {
+  scale: .94;
+  box-shadow: inset 0 0 0 999px rgb(255 255 255 / 14%) !important;
+}
+
+.Root__now-playing-bar .player-controls__buttons button:is(:disabled, [aria-disabled="true"]) {
+  opacity: .38;
+  pointer-events: none;
+}
+
+/* time stamps: bold and steady-width so they do not jitter */
+.playback-bar :is(.playback-bar__progress-time-elapsed, .playback-bar__progress-time) {
+  color: var(--me3-subtext) !important;
+  font-weight: var(--me3-weight-strong) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------
    8. Play buttons: Material 9-sided cookie, replacing Spotify's round button entirely
       Spotify's button is a <button> holding an inner coloured circle, a focus
       ring and an SVG. All of those children are hidden so only OUR shape and
       OUR glyph remain (this was the leftover circle and the upward shift).
+      The player bar is excluded here: its play/pause is the wide tile in 7c.
    --------------------------------------------------------------------- */
 
 :is(
@@ -931,7 +1033,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   .view-homeShortcutsGrid-PlayButtonContainer button,
   button.main-playButton-PlayButton,
   button.view-homeShortcutsGrid-playButton
-):not(.main-trackList-trackListRow *) {
+):not(.main-trackList-trackListRow *, .Root__now-playing-bar *) {
   box-sizing: border-box !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -973,27 +1075,15 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   .view-homeShortcutsGrid-PlayButtonContainer button,
   button.main-playButton-PlayButton,
   button.view-homeShortcutsGrid-playButton
-):not(.main-trackList-trackListRow *) > * {
+):not(.main-trackList-trackListRow *, .Root__now-playing-bar *) > * {
   display: none !important;
 }
 
-.main-actionBar-ActionBar [data-testid="play-button"]:not(.main-trackList-trackListRow *) {
+.main-actionBar-ActionBar [data-testid="play-button"]:not(.main-trackList-trackListRow *, .Root__now-playing-bar *) {
   width: 48px !important;
   min-width: 48px !important;
   height: 48px !important;
   min-height: 48px !important;
-}
-
-/* Player-bar play control: rounded square while paused, circle while playing. */
-.Root__now-playing-bar button[data-testid="control-button-playpause"] {
-  -webkit-mask-image: none !important;
-  mask-image: none !important;
-  border-radius: 16px !important;
-  transition: background-color 180ms ease, border-radius 220ms var(--me3-ease-std), scale 240ms var(--me3-ease-spring) !important;
-}
-
-.Root__now-playing-bar button[data-testid="control-button-playpause"][aria-label^="Pause" i] {
-  border-radius: 50% !important;
 }
 
 :is(
@@ -1004,7 +1094,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   .main-card-PlayButtonContainer button,
   .main-heroCard-PlayButtonContainer button,
   .view-homeShortcutsGrid-PlayButtonContainer button
-):not(.main-trackList-trackListRow *):is(:hover, :focus-visible) {
+):not(.main-trackList-trackListRow *, .Root__now-playing-bar *):is(:hover, :focus-visible) {
   background: var(--me3-lavender) !important;
   scale: 1.06;
 }
@@ -1017,7 +1107,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   .main-card-PlayButtonContainer button,
   .main-heroCard-PlayButtonContainer button,
   .view-homeShortcutsGrid-PlayButtonContainer button
-):not(.main-trackList-trackListRow *):active {
+):not(.main-trackList-trackListRow *, .Root__now-playing-bar *):active {
   scale: 0.94;
 }
 
@@ -1031,7 +1121,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   .view-homeShortcutsGrid-PlayButtonContainer button,
   button.main-playButton-PlayButton,
   button.view-homeShortcutsGrid-playButton
-):not(.main-trackList-trackListRow *)::before {
+):not(.main-trackList-trackListRow *, .Root__now-playing-bar *)::before {
   display: block !important;
   width: 1em;
   height: 1em;
@@ -1101,24 +1191,21 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
 
 /* play and pause share one box, one size, one font: always the same place */
 .me3-art-play__glyph {
+  --me3-fill: 1;
+  --me3-wght: 500;
   display: block;
   width: 1em;
   height: 1em;
-  font-family: "Material Symbols Rounded", sans-serif !important;
   font-size: 24px;
-  font-weight: 400;
-  font-style: normal;
-  line-height: 1;
   text-align: center;
-  font-feature-settings: "liga";
-  font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
-  -webkit-font-smoothing: antialiased;
   filter: drop-shadow(0 1px 3px rgb(17 17 27 / 70%));
 }
 
 /* ---------------------------------------------------------------------
    10. Icons: Google Material Symbols Rounded replace Spotify's SVGs.
-       (generated from one table, see the build note in the reply)
+       To restyle one more icon: add its aria-label to the hide list, add a
+       `content` line to the table, and add the icon name to icon_names in
+       the font @import at the top (the names must stay alphabetical).
    --------------------------------------------------------------------- */
 /* hide Spotify's SVG so icons never double up */
 :is(button, [role="button"], a):is(
@@ -1159,6 +1246,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   [aria-label="Remove from Liked Songs" i],
   [aria-label="Add to playlist" i],
   [aria-label="Search" i],
+  [aria-label="Search in Your Library" i],
   [aria-label="Home" i],
   [aria-label="Explore" i],
   [aria-label="Browse" i],
@@ -1173,77 +1261,33 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   [aria-label="Download" i],
   [aria-label^="More options" i],
   [aria-label="Close" i],
-  [aria-label="Clear search field" i]
+  [aria-label="Clear search field" i],
+  [aria-label="What's New" i],
+  [aria-label="What’s New" i],
+  [aria-label="Friend Activity" i]
 ) svg {
   display: none !important;
 }
 
-/* shared Material Symbols glyph */
-:is(button, [role="button"], a):is(
-  [aria-label="Play" i],
-  [aria-label^="Play " i],
-  [aria-label="Pause" i],
-  [aria-label^="Pause " i],
-  [aria-label="Next" i],
-  [aria-label="Next track" i],
-  [aria-label="Previous" i],
-  [aria-label="Previous track" i],
-  [aria-label="Shuffle" i],
-  [aria-label="Enable shuffle" i],
-  [aria-label="Disable shuffle" i],
-  [aria-label="Enable smart shuffle" i],
-  [aria-label="Disable smart shuffle" i],
-  [aria-label="Repeat" i],
-  [aria-label="Enable repeat" i],
-  [aria-label="Enable repeat one" i],
-  [aria-label="Disable repeat" i],
-  [aria-label="Volume" i],
-  [aria-label="Mute" i],
-  [aria-label="Unmute" i],
-  [aria-label="Queue" i],
-  [aria-label="Lyrics" i],
-  [aria-label="Connect to a device" i],
-  [aria-label="Miniplayer" i],
-  [aria-label="Open Miniplayer" i],
-  [aria-label="Close Miniplayer" i],
-  [aria-label="Full screen" i],
-  [aria-label="Enter full screen" i],
-  [aria-label="Exit full screen" i],
-  [aria-label="Now playing view" i],
-  [aria-label="Save to Your Library" i],
-  [aria-label="Add to Your Library" i],
-  [aria-label="Add to Liked Songs" i],
-  [aria-label="Remove from Your Library" i],
-  [aria-label="Remove from Liked Songs" i],
-  [aria-label="Add to playlist" i],
-  [aria-label="Search" i],
-  [aria-label="Home" i],
-  [aria-label="Explore" i],
-  [aria-label="Browse" i],
-  [aria-label="Your Library" i],
-  [aria-label="Collapse Your Library" i],
-  [aria-label="Expand Your Library" i],
-  [aria-label="Open Your Library" i],
-  [aria-label="Create playlist or folder" i],
-  [aria-label="Create" i],
-  [aria-label="Go back" i],
-  [aria-label="Go forward" i],
-  [aria-label="Download" i],
-  [aria-label^="More options" i],
-  [aria-label="Close" i],
-  [aria-label="Clear search field" i]
-)::before {
-  display: inline-grid;
-  place-items: center;
+/* one glyph recipe for every Material Symbol the theme draws: label-mapped
+   buttons, the like heart (section 11) and the artwork overlay (section 9) */
+:is(button, [role="button"], a)[aria-label]::before,
+[data-me3-like]::before,
+.me3-art-play__glyph {
   font-family: "Material Symbols Rounded", sans-serif !important;
-  font-size: 22px;
   font-weight: 400;
   font-style: normal;
   line-height: 1;
   white-space: nowrap;
   font-feature-settings: "liga";
-  font-variation-settings: "FILL" var(--me3-fill, 0), "wght" 450, "GRAD" 0, "opsz" 24;
+  font-variation-settings: "FILL" var(--me3-fill, 0), "wght" var(--me3-wght, 450), "GRAD" 0, "opsz" 24;
   -webkit-font-smoothing: antialiased;
+}
+
+:is(button, [role="button"], a)[aria-label]::before {
+  display: inline-grid;
+  place-items: center;
+  font-size: 22px;
 }
 
 :is(button, [role="button"], a)[aria-label="Play" i]::before, :is(button, [role="button"], a)[aria-label^="Play " i]::before { content: "play_arrow"; }
@@ -1270,7 +1314,9 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
 :is(button, [role="button"], a)[aria-label="Remove from Your Library" i]::before, :is(button, [role="button"], a)[aria-label="Remove from Liked Songs" i]::before { content: "favorite"; }
 :is(button, [role="button"], a)[aria-label="Remove from Your Library" i], :is(button, [role="button"], a)[aria-label="Remove from Liked Songs" i] { --me3-fill: 1; }
 :is(button, [role="button"], a)[aria-label="Add to playlist" i]::before { content: "playlist_add"; }
-:is(button, [role="button"], a)[aria-label="Search" i]::before { content: "search"; }
+:is(button, [role="button"], a)[aria-label="Search" i]::before, :is(button, [role="button"], a)[aria-label="Search in Your Library" i]::before { content: "search"; }
+:is(button, [role="button"], a)[aria-label="What's New" i]::before, :is(button, [role="button"], a)[aria-label="What’s New" i]::before { content: "notifications"; }
+:is(button, [role="button"], a)[aria-label="Friend Activity" i]::before { content: "group"; }
 :is(button, [role="button"], a)[aria-label="Home" i]::before { content: "home"; }
 :is(button, [role="button"], a)[aria-label="Explore" i]::before, :is(button, [role="button"], a)[aria-label="Browse" i]::before { content: "explore"; }
 :is(button, [role="button"], a)[aria-label="Your Library" i]::before, :is(button, [role="button"], a)[aria-label="Collapse Your Library" i]::before, :is(button, [role="button"], a)[aria-label="Expand Your Library" i]::before, :is(button, [role="button"], a)[aria-label="Open Your Library" i]::before { content: "library_music"; }
@@ -1326,17 +1372,10 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   display: block;
   width: 1em;
   height: 1em;
-  font-family: "Material Symbols Rounded", sans-serif !important;
   font-size: 24px;
-  font-weight: 400;
-  font-style: normal;
-  line-height: 1;
   text-align: center;
-  font-feature-settings: "liga";
-  font-variation-settings: "FILL" var(--me3-fill), "wght" 450, "GRAD" 0, "opsz" 24;
   color: var(--me3-subtext);
   transition: color 160ms ease;
-  -webkit-font-smoothing: antialiased;
 }
 
 [data-me3-like]:hover::before { color: var(--me3-mauve); }
@@ -1517,7 +1556,6 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
    some layouts, so detect the state from the document and hide only the
    library panel's scrollbar implementations. */
 body:has(:is(
-  [aria-label*="Expand Your Library" i],
   [aria-label*="Expand" i][aria-label*="Library" i],
   [aria-label*="Your Library" i][aria-expanded="false"],
   [data-testid*="expand" i][data-testid*="library" i]
@@ -1526,32 +1564,18 @@ body:has(:is(
 }
 
 body:has(:is(
-  [aria-label*="Expand Your Library" i],
   [aria-label*="Expand" i][aria-label*="Library" i],
   [aria-label*="Your Library" i][aria-expanded="false"],
   [data-testid*="expand" i][data-testid*="library" i]
-)) :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer),
-body:has(:is(
-  [aria-label*="Expand Your Library" i],
-  [aria-label*="Expand" i][aria-label*="Library" i],
-  [aria-label*="Your Library" i][aria-expanded="false"],
-  [data-testid*="expand" i][data-testid*="library" i]
-)) :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer) * {
+)) :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer, :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer) *) {
   scrollbar-width: none !important;
 }
 
 body:has(:is(
-  [aria-label*="Expand Your Library" i],
   [aria-label*="Expand" i][aria-label*="Library" i],
   [aria-label*="Your Library" i][aria-expanded="false"],
   [data-testid*="expand" i][data-testid*="library" i]
-)) :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer)::-webkit-scrollbar,
-body:has(:is(
-  [aria-label*="Expand Your Library" i],
-  [aria-label*="Expand" i][aria-label*="Library" i],
-  [aria-label*="Your Library" i][aria-expanded="false"],
-  [data-testid*="expand" i][data-testid*="library" i]
-)) :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer) *::-webkit-scrollbar {
+)) :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer, :is(.main-yourLibraryX-libraryRootlist, .main-yourLibraryX-libraryContainer) *)::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;
