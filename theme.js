@@ -7,7 +7,7 @@
    2. Like state           data-me3-like="on|off" on every like / save button
    3. Carousel surfaces    data-me3-shelf on blocks that hold one heading + cards
    4. Play on artwork      one floating overlay over the hovered row's artwork
-   5. Player controls      data-me3-ctl on the five transport buttons, by position
+   5. Player controls      data-me3-ctl by position, data-me3-state for shuffle / repeat
 
    Performance: the old version watched the WHOLE document and measured layout
    every 200 ms, which fought with the virtualised sidebar list while it
@@ -537,16 +537,48 @@
         play / pause, next, repeat) so user.css can draw their glyphs without
         relying on Spotify's labels, which change between versions. If the
         count is not exactly five nothing is tagged and Spotify's icons stay.
+        Shuffle and repeat also get data-me3-state, read from the player:
+          shuffle: off | on | smart          repeat: off | all | one
      ------------------------------------------------------------------ */
   const CONTROL_ROLES = ["shuffle", "prev", "play", "next", "repeat"];
 
-  function tagControls() {
+  function playerModes(shuffleBtn) {
+    const P = player();
+    if (!P || typeof P.getShuffle !== "function" || typeof P.getRepeat !== "function") return null;
+    const data = P.data || {};
+    const smart = data.smartShuffle !== undefined
+      ? !!data.smartShuffle
+      : /disable smart shuffle/i.test(shuffleBtn.getAttribute("aria-label") || "");
+    const repeat = P.getRepeat();
+    return {
+      shuffle: smart ? "smart" : P.getShuffle() ? "on" : "off",
+      repeat: repeat === 2 || repeat === "track" ? "one" : repeat === 1 || repeat === "context" ? "all" : "off",
+    };
+  }
+
+  function syncControls() {
     $$(".player-controls__buttons").forEach((row) => {
       const buttons = $$("button", row);
       if (buttons.length !== CONTROL_ROLES.length) return;
       buttons.forEach((btn, i) => setData(btn, "me3Ctl", CONTROL_ROLES[i]));
+      const modes = playerModes(buttons[0]);
+      if (!modes) return;
+      setData(buttons[0], "me3State", modes.shuffle);
+      setData(buttons[4], "me3State", modes.repeat);
     });
   }
+
+  // Spotify applies a shuffle / repeat click a moment later
+  doc.addEventListener(
+    "click",
+    (e) => {
+      if (e.target.closest && e.target.closest(".player-controls__buttons button")) {
+        setTimeout(syncControls, 150);
+        setTimeout(syncControls, 600);
+      }
+    },
+    true
+  );
 
   /* ------------------------------------------------------------------
      Wiring: observe ONLY the main view and the player bar
@@ -561,7 +593,7 @@
 
   const playerPass = debounce(() => {
     mountSeek();
-    tagControls();
+    syncControls();
     const np = nowPlayingLikeButton();
     if (np && !np.hasAttribute("data-me3-like")) syncNowPlayingLike();
   }, 150);
@@ -595,6 +627,7 @@
       paintSeek();
       kickSeek();
       scheduleArtUpdate();
+      syncControls();
     };
     S.Player.addEventListener("onplaypause", resync);
     S.Player.addEventListener("onprogress", paintSeek);
@@ -607,13 +640,18 @@
       libraryApi().getEvents().addListener("operation_complete", onLibraryOperationComplete);
     } catch (_) { /* older clients: the click handler covers it */ }
 
+    try {
+      const api = S.Platform.PlayerAPI;
+      (api.getEvents ? api.getEvents() : api._events).addListener("update", syncControls);
+    } catch (_) { /* the click handler and the 2 s check below cover it */ }
+
     seek.playing = detectPlaying();
     refreshAllLikes();
   }
 
   function start() {
     watchRoots();
-    setInterval(watchRoots, 2000); // roots can be re-created when layouts change
+    setInterval(() => { watchRoots(); syncControls(); }, 2000); // roots can be re-created when layouts change
     bindSpicetify();
   }
 
