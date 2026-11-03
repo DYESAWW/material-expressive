@@ -36,6 +36,15 @@
   --me3-radius-medium: 18px;
   --me3-radius-large: 28px;
   --me3-radius-pill: 999px;
+  --me3-radius-none: 0;
+  --me3-radius-circle: 50%;
+
+  /* Artwork shapes remain visually consistent from thumbnails to full covers. */
+  --me3-shape-artwork: 12%;
+  --me3-shape-card-artwork: 22%;
+  --me3-shape-artwork-feature: 34% 18% 34% 18%;
+  --me3-shape-artwork-library: 32% 18% 32% 18%;
+  --me3-shape-artwork-collapsed: 16px;
 
   /* M3 Expressive motion */
   --me3-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
@@ -50,9 +59,9 @@
   --me3-weight-body: 520;
   --me3-weight-strong: 720;
   --me3-weight-button: 600;
-  --me3-title-size: clamp(1.5rem, 5.8vw, 6.25rem);
+  --me3-title-size: clamp(1.5rem, 4.2vw, 4.5rem);
   --me3-title-weight: 800;
-  --me3-title-leading: 1.04;
+  --me3-title-leading: 1.2;
   --me3-title-tracking: -0.035em;
 
   /* Colour of a saved (liked) heart; set to var(--me3-mauve) for pure purple */
@@ -153,6 +162,12 @@
   background-image: none !important;
 }
 
+/* Keep off-screen carousel cards inside their own tonal surface. The scroll
+   container remains intact; only the shelf edge becomes the clipping edge. */
+[data-shelf="carousel"] {
+  overflow: hidden;
+}
+
 /* Nothing inside a shelf may paint a second surface. */
 :is(.main-shelf-shelf, [data-shelf], [data-shelf-collapsable], [data-me3-shelf]) :is(
   .main-shelf-shelf, [data-shelf], [data-shelf-collapsable], [data-me3-shelf],
@@ -162,18 +177,18 @@
   [data-testid*="carousel" i]
 ) {
   border: 0 !important;
-  border-radius: 0 !important;
+  border-radius: var(--me3-radius-none) !important;
   background: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
   margin-block: 0 !important;
 }
 
-:is(.main-shelf-shelf, [data-shelf], [data-shelf-collapsable], [data-me3-shelf]) .main-card-card {
+:is(.main-shelf-shelf, [data-shelf], [data-shelf-collapsable], [data-me3-shelf]) :is(.main-card-card, [data-encore-id="card"]) {
   background: transparent !important;
 }
 
-:is(.main-shelf-shelf, [data-shelf], [data-shelf-collapsable], [data-me3-shelf]) .main-card-card:hover {
+:is(.main-shelf-shelf, [data-shelf], [data-shelf-collapsable], [data-me3-shelf]) :is(.main-card-card, [data-encore-id="card"]):hover {
   background: rgb(69 71 90 / 70%) !important;
 }
 
@@ -213,21 +228,6 @@
 )::after {
   background-color: transparent !important;
   background-image: none !important;
-}
-
-/* Current Home grid carousels use a separate wrapper for their side overlays.
-   Keep the scroll-edge cue, but fade it with the theme surface instead of
-   Spotify's black gradient. */
-.W7ETd1fZHm0MV0Jqtjeu.wlt29eHDgK8xhXU4uIYM.VdoAFBSgMkSkMmW0NgAk::before,
-.W7ETd1fZHm0MV0Jqtjeu.wlt29eHDgK8xhXU4uIYM.VdoAFBSgMkSkMmW0NgAk > .JIrO_Kklclbf_mnPX9Dh::before {
-  background-color: transparent !important;
-  background-image: linear-gradient(90deg, var(--me3-surface), transparent) !important;
-}
-
-.W7ETd1fZHm0MV0Jqtjeu.wlt29eHDgK8xhXU4uIYM.VdoAFBSgMkSkMmW0NgAk::after,
-.W7ETd1fZHm0MV0Jqtjeu.wlt29eHDgK8xhXU4uIYM.VdoAFBSgMkSkMmW0NgAk > .JIrO_Kklclbf_mnPX9Dh::after {
-  background-color: transparent !important;
-  background-image: linear-gradient(270deg, var(--me3-surface), transparent) !important;
 }
 
 /* Carousel arrows */
@@ -271,6 +271,7 @@ select,
 [class*="encore-text-headline"],
 h1, h2, h3, h4,
 .main-cardHeader-text,
+[data-encore-id="card"] [data-encore-id="text"],
 .main-trackList-rowTitle,
 .main-shelf-title {
   font-weight: var(--me3-weight-strong) !important;
@@ -293,9 +294,9 @@ button,
 
 .main-entityHeader-headerText {
   gap: 12px;
-  flex: 1 1 auto;
+  flex: 1 1 42rem;
   min-width: 0;
-  max-width: 100%;
+  max-width: min(100%, 64rem);
   overflow: visible !important;
 }
 
@@ -308,7 +309,8 @@ button,
   letter-spacing: var(--me3-title-tracking) !important;
   padding-block: 0.06em;
   display: block !important;
-  max-width: 100%;
+  width: min(100%, 64rem);
+  max-width: none;
   min-width: 0;
   white-space: normal !important;
   overflow: visible !important;
@@ -321,10 +323,17 @@ button,
   margin-block: 8px 12px !important;
 }
 
+/* Spotify 1.3's header no longer always exposes the legacy header-text
+   class. Preserve the same generous title measure through stable test ids. */
+[data-testid="entity-header"] :is([data-testid="entityTitle"], [data-testid="adaptiveEntityTitle"]) {
+  width: min(100%, 64rem);
+  max-width: none !important;
+}
+
 /* ---------------------------------------------------------------------
    5. Shape language and focus
    --------------------------------------------------------------------- */
-.main-card-card,
+:is(.main-card-card, [data-encore-id="card"]),
 .main-cardImageContainer,
 .main-trackList-trackList,
 .main-playlistEditDetailsModal-container,
@@ -389,33 +398,59 @@ input:focus-visible {
       every library thumbnail was a big part of the sidebar lag.
    --------------------------------------------------------------------- */
 
-.main-card-card {
+:is(.main-card-card, [data-encore-id="card"]) {
   position: relative;
   background: rgb(49 50 68 / 58%);
   transition: background-color 180ms ease, transform 240ms var(--me3-ease-std);
 }
 
-.main-card-card:hover {
+:is(.main-card-card, [data-encore-id="card"]):hover {
   background: var(--me3-surface) !important;
   transform: translateY(-2px);
 }
 
-.main-cardImageContainer,
+:is(.main-cardImageContainer, [data-encore-id="card"] > :is(a, div):first-child),
 .main-cardImageContainer img,
 .main-cardImageContainer div,
+[data-encore-id="card"] img,
 .main-trackList-rowImage,
 .main-trackList-rowImage img,
 .main-miniPlayer-coverArt,
 .main-miniPlayer-coverArt img,
 .cover-art,
 .cover-art-image {
-  border-radius: 22% !important;
+  border-radius: var(--me3-shape-card-artwork) !important;
   overflow: hidden;
+}
+
+/* Spotify supplies a fallback cover colour on several artwork shells. Clip
+   the shell and keep it transparent, otherwise that colour remains visible in
+   the rounded corners while the image itself is correctly rounded. */
+:is(
+  .main-cardImageContainer,
+  .main-cardImage-imageWrapper,
+  .main-trackList-rowImage,
+  .main-miniPlayer-coverArt,
+  .main-entityHeader-image,
+  [data-testid="cover-art-slot"],
+  [data-testid="cover-art-container"],
+  [data-testid="cover-drop-target"],
+  [data-testid="cover-art-button"],
+  .main-nowPlayingWidget-coverArtContainer,
+  .main-nowPlayingWidget-coverArt,
+  .main-coverSlotCollapsed-container
+) {
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+[data-testid="cover-art-slot"] :is(div, a) {
+  background: transparent !important;
 }
 
 /* Header artwork keeps its playful tilt. */
 .main-entityHeader-image {
-  border-radius: 34% 18% 34% 18% !important;
+  border-radius: var(--me3-shape-artwork-feature) !important;
   overflow: hidden;
   transform: rotate(-3deg);
   box-shadow: 0 14px 36px rgb(17 17 27 / 32%);
@@ -474,12 +509,12 @@ input:focus-visible {
   }
 }
 
-/* Preserve the old sidebar artwork treatment and Spotify's native row sizing. */
+/* Preserve the existing left-library artwork treatment and row sizing. */
 .main-yourLibraryX-libraryItem img,
 .main-yourLibraryX-libraryItem [data-testid="cover-art-image"],
 .main-rootlist-rootlistItem img,
 .main-rootlist-rootlistItem [data-testid="cover-art-image"] {
-  border-radius: 32% 18% 32% 18% !important;
+  border-radius: var(--me3-shape-artwork-library) !important;
   transform: rotate(-3deg);
 }
 
@@ -488,6 +523,20 @@ input:focus-visible {
 .main-rootlist-rootlistItem:hover img,
 .main-rootlist-rootlistItem:hover [data-testid="cover-art-image"] {
   transform: rotate(0deg);
+}
+
+/* Keep every right-sidebar cover on the same compact M3 rounded-square shape.
+   A proportional corner keeps the 48px list thumbnails visually identical to
+   the large Now Playing cover instead of making the thumbnails look rounder. */
+[data-testid="cover-art-slot"],
+[data-testid="cover-art-slot"] *,
+:is(.Root__right-sidebar, #Desktop_PanelContainer_Id, .NowPlayingView) .e-10860-legacy-list-row__header-side img {
+  border-radius: var(--me3-shape-artwork) !important;
+}
+
+[data-testid="cover-art-slot"],
+[data-testid="cover-art-slot"] * {
+  overflow: hidden;
 }
 
 /* ---------------------------------------------------------------------
@@ -509,7 +558,7 @@ input:focus-visible {
   margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
-  border-radius: 0 !important;
+  border-radius: var(--me3-radius-none) !important;
   background: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
@@ -578,7 +627,7 @@ input:focus-visible {
   padding: 0 !important;
   overflow: hidden !important;
   border: 0 !important;
-  border-radius: 34% 18% 34% 18% !important;
+  border-radius: var(--me3-shape-artwork-feature) !important;
   background: transparent !important;
   box-shadow: none !important;
   transform: none !important;
@@ -634,7 +683,7 @@ input:focus-visible {
   margin: 0 !important;
   padding: 0 !important;
   overflow: hidden;
-  border-radius: 16px !important;
+  border-radius: var(--me3-shape-artwork-collapsed) !important;
   transform: none !important;
   rotate: none !important;
   scale: none !important;
@@ -647,7 +696,7 @@ input:focus-visible {
   width: 100% !important;
   height: 100% !important;
   margin: 0 !important;
-  border-radius: 0 !important;
+  border-radius: var(--me3-radius-none) !important;
   transform: none !important;
   clip-path: none !important;
 }
@@ -657,7 +706,7 @@ input:focus-visible {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover;
-  border-radius: 0 !important;
+  border-radius: var(--me3-radius-none) !important;
   transform: none !important;
   clip-path: none !important;
 }
@@ -714,7 +763,7 @@ input:focus-visible {
 :is([data-testid="volume-bar"], .main-nowPlayingBar-volumeBar, .volume-bar, .playback-bar__volume-bar),
 :is([data-testid="volume-bar"], .main-nowPlayingBar-volumeBar, .volume-bar, .playback-bar__volume-bar) * {
   --progress-bar-height: 8px !important;
-  --progress-bar-radius: 999px !important;
+  --progress-bar-radius: var(--me3-radius-pill) !important;
   --bg-color: var(--me3-surface-1) !important;
   --fg-color: var(--me3-mauve) !important;
 }
@@ -760,22 +809,23 @@ input:focus-visible {
   accent-color: var(--me3-mauve) !important;
 }
 
-/* Fixed width: 160px normally, 230px when the volume-percentage plugin is present. */
+/* A responsive cap leaves space for transport and utility controls at every
+   window width, rather than forcing the player bar to overlap. */
 [data-testid="volume-bar"] {
-  --me3-vol-basis: 160px;
+  --me3-vol-basis: clamp(72px, 10vw, 132px);
   flex: 0 1 var(--me3-vol-basis) !important;
   width: var(--me3-vol-basis) !important;
-  max-width: none !important;
+  max-width: var(--me3-vol-basis) !important;
   min-width: 0;
   transition: none !important;
 }
 
 [data-testid="volume-bar"].volume-percentage-wrapper {
-  --me3-vol-basis: 230px;
+  --me3-vol-basis: clamp(112px, 14vw, 180px);
 }
 
 [data-testid="volume-bar"].volume-percentage-wrapper.inherit-flex {
-  --me3-vol-basis: 160px;
+  --me3-vol-basis: clamp(72px, 10vw, 132px);
 }
 
 .main-nowPlayingBar-volumeBar:not([data-testid="volume-bar"]) {
@@ -787,6 +837,11 @@ input:focus-visible {
 .volume-bar__slider-container {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+@media (max-width: 760px) {
+  [data-testid="volume-bar"] { --me3-vol-basis: clamp(56px, 12vw, 88px); }
+  [data-testid="volume-bar"].volume-percentage-wrapper { --me3-vol-basis: clamp(92px, 16vw, 120px); }
 }
 
 /* Optional "Volume Percentage" extension: sits right of the slider */
@@ -832,22 +887,22 @@ input:focus-visible {
 .playback-bar .playback-progressbar,
 .playback-bar .playback-progressbar * {
   --progress-bar-height: 6px;
-  --progress-bar-radius: 999px;
+  --progress-bar-radius: var(--me3-radius-pill);
   --bg-color: var(--me3-surface-1);
   --fg-color: var(--me3-mauve);
 }
 
-.playback-bar :is(.x-progressBar-progressBarBg, .x-progressBar-background) {
+.playback-bar :is(.x-progressBar-progressBarBg, .x-progressBar-background, .progress-bar__bg) {
   background-color: var(--me3-surface-1) !important;
   border-radius: var(--me3-radius-pill) !important;
   overflow: hidden;
 }
 
-.playback-bar :is(.x-progressBar-foregroundWrapper, .x-progressBar-middleground, .x-progressBar-sliderArea) {
+.playback-bar :is(.x-progressBar-foregroundWrapper, .x-progressBar-middleground, .x-progressBar-sliderArea, .progress-bar__slider) {
   background: transparent !important;
 }
 
-.playback-bar :is(.x-progressBar-fillColor, .x-progressBar-foreground, .x-progressBar-progressFillColor) {
+.playback-bar :is(.x-progressBar-fillColor, .x-progressBar-foreground, .x-progressBar-progressFillColor, .progress-bar__slider) {
   background-color: var(--me3-mauve) !important;
   background-image: none !important;
   border-radius: var(--me3-radius-pill) !important;
@@ -935,7 +990,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   top: 0;
   width: 4px;
   height: 4px;
-  border-radius: 50%;
+  border-radius: var(--me3-radius-circle);
   background: var(--me3-mauve);
 }
 
@@ -1008,6 +1063,8 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
 .Root__now-playing-bar .player-controls__buttons button[data-me3-ctl="next"]::before { content: "skip_next"; }
 .Root__now-playing-bar .player-controls__buttons button[data-me3-ctl="repeat"]::before { content: "repeat"; }
 .Root__now-playing-bar .player-controls__buttons button[data-me3-ctl="repeat"]:is([data-me3-state="one"], :not([data-me3-state]):is([aria-label="Disable repeat" i], [aria-checked="mixed"]))::before { content: "repeat_one"; }
+.Root__now-playing-bar .player-controls__buttons button[data-testid="control-button-playpause"][data-me3-state="paused"]::before { content: "play_arrow" !important; }
+.Root__now-playing-bar .player-controls__buttons button[data-testid="control-button-playpause"][data-me3-state="playing"]::before { content: "pause" !important; }
 
 /* native icon wrappers and Spotify's "active dot": only our glyph stays */
 .Root__now-playing-bar .player-controls__buttons :is(button[data-me3-ctl], button[data-testid="control-button-playpause"]) > * {
@@ -1027,7 +1084,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   width: auto !important;
   height: auto !important;
   margin: 0;
-  border-radius: 0;
+  border-radius: var(--me3-radius-none);
   background: none !important;
   transform: none !important;
   font-size: 22px;
@@ -1072,7 +1129,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   width: 4px;
   height: 4px;
   translate: -50% 0;
-  border-radius: 50%;
+  border-radius: var(--me3-radius-circle);
   background: currentColor;
 }
 
@@ -1114,6 +1171,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   .main-card-PlayButtonContainer button,
   .main-heroCard-PlayButtonContainer button,
   .view-homeShortcutsGrid-PlayButtonContainer button,
+  button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i]),
   button.main-playButton-PlayButton,
   button.view-homeShortcutsGrid-playButton
 ):not(.main-trackList-trackListRow *, .Root__now-playing-bar *) {
@@ -1132,7 +1190,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   background: var(--me3-mauve) !important;
   background-image: none !important;
   border: 0 !important;
-  border-radius: 0 !important;
+  border-radius: var(--me3-radius-none) !important;
   box-shadow: none !important;
   outline-offset: 0;
   clip-path: none !important;
@@ -1156,6 +1214,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   .main-card-PlayButtonContainer button,
   .main-heroCard-PlayButtonContainer button,
   .view-homeShortcutsGrid-PlayButtonContainer button,
+  button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i]),
   button.main-playButton-PlayButton,
   button.view-homeShortcutsGrid-playButton
 ):not(.main-trackList-trackListRow *, .Root__now-playing-bar *) > * {
@@ -1169,6 +1228,22 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   min-height: 48px !important;
 }
 
+/* Spotify 1.3's sticky action row supplies its own vertical spacing. Keep the
+   row flush with its surrounding content while retaining horizontal spacing. */
+:is(.main-actionBar-ActionBarRow, [data-testid="action-bar-row"]) {
+  margin-block: 0 !important;
+}
+
+:is(.main-actionBar-ActionBar[data-testid="action-bar"], [data-testid="action-bar"]) {
+  min-block-size: 0 !important;
+  padding-block: 8px !important;
+}
+
+:is(.main-actionBar-ActionBar[data-testid="action-bar"], [data-testid="action-bar"]) > :is(.main-actionBar-ActionBarRow, [data-testid="action-bar-row"]) {
+  min-block-size: 48px !important;
+  padding-block: 0 !important;
+}
+
 :is(
   button[data-testid="control-button-playpause"],
   .main-actionBar-ActionBar [data-testid="play-button"],
@@ -1176,7 +1251,8 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   .main-playButton-PlayButton button,
   .main-card-PlayButtonContainer button,
   .main-heroCard-PlayButtonContainer button,
-  .view-homeShortcutsGrid-PlayButtonContainer button
+  .view-homeShortcutsGrid-PlayButtonContainer button,
+  button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i])
 ):not(.main-trackList-trackListRow *, .Root__now-playing-bar *):is(:hover, :focus-visible) {
   background: var(--me3-lavender) !important;
   scale: 1.06;
@@ -1189,7 +1265,8 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   .main-playButton-PlayButton button,
   .main-card-PlayButtonContainer button,
   .main-heroCard-PlayButtonContainer button,
-  .view-homeShortcutsGrid-PlayButtonContainer button
+  .view-homeShortcutsGrid-PlayButtonContainer button,
+  button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i])
 ):not(.main-trackList-trackListRow *, .Root__now-playing-bar *):active {
   scale: 0.94;
 }
@@ -1202,6 +1279,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   .main-card-PlayButtonContainer button,
   .main-heroCard-PlayButtonContainer button,
   .view-homeShortcutsGrid-PlayButtonContainer button,
+  button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i]),
   button.main-playButton-PlayButton,
   button.view-homeShortcutsGrid-playButton
 ):not(.main-trackList-trackListRow *, .Root__now-playing-bar *)::before {
@@ -1212,6 +1290,94 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   font-size: 24px !important;
   line-height: 1 !important;
   text-align: center;
+}
+
+/* The sticky page control exposes only this Encore icon-only primary shape.
+   It may not retain a Play aria-label after the header collapses, so supply
+   the glyph directly instead of depending on that label. */
+button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i])::before {
+  font-family: "Material Symbols Rounded", sans-serif !important;
+  font-weight: 400;
+  font-style: normal;
+  font-feature-settings: "liga";
+  font-variation-settings: "FILL" 1, "wght" 450, "GRAD" 0, "opsz" 24;
+}
+
+/* Spotify 1.3 action bars expose the page play button as an Encore primary
+   button, without the former data-testid. Give it the identical cookie form. */
+:is(
+  [data-testid="entity-header"],
+  [data-testid="action-bar"],
+  [data-testid="action-bar-row"],
+  section[data-testid$="-page"]
+) button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i]) {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto;
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  margin: 0;
+  padding: 0 !important;
+  color: var(--me3-crust) !important;
+  background: var(--me3-mauve) !important;
+  border: 0 !important;
+  border-radius: var(--me3-radius-none) !important;
+  box-shadow: none !important;
+  -webkit-mask: var(--me3-cookie-nine) center / 100% 100% no-repeat !important;
+  mask: var(--me3-cookie-nine) center / 100% 100% no-repeat !important;
+  transition: background-color 180ms ease, scale 240ms var(--me3-ease-spring) !important;
+}
+
+:is(
+  [data-testid="entity-header"],
+  [data-testid="action-bar"],
+  [data-testid="action-bar-row"],
+  section[data-testid$="-page"]
+) button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i]) > * {
+  display: none !important;
+}
+
+:is(
+  [data-testid="entity-header"],
+  [data-testid="action-bar"],
+  [data-testid="action-bar-row"],
+  section[data-testid$="-page"]
+) button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i])::before {
+  content: "play_arrow" !important;
+  display: block !important;
+  width: 1em;
+  height: 1em;
+  color: var(--me3-crust) !important;
+  font-family: "Material Symbols Rounded", sans-serif !important;
+  font-size: 24px !important;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1 !important;
+  font-feature-settings: "liga";
+  font-variation-settings: "FILL" 1, "wght" 450, "GRAD" 0, "opsz" 24;
+}
+
+:is(
+  [data-testid="entity-header"],
+  [data-testid="action-bar"],
+  [data-testid="action-bar-row"],
+  section[data-testid$="-page"]
+) button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i]):is(:hover, :focus-visible) {
+  background: var(--me3-lavender) !important;
+  scale: 1.06;
+}
+
+:is(
+  [data-testid="entity-header"],
+  [data-testid="action-bar"],
+  [data-testid="action-bar-row"],
+  section[data-testid$="-page"]
+) button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i]):active {
+  scale: .94;
 }
 
 /* ---------------------------------------------------------------------
@@ -1258,7 +1424,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  border-radius: 22%;
+  border-radius: var(--me3-shape-card-artwork);
   color: var(--me3-text);
   background: rgb(17 17 27 / 58%);
   opacity: 0;
@@ -1586,6 +1752,21 @@ button[data-me3-ctl]::before {
 
 [data-me3-like="on"] { --me3-fill: 1; }
 
+/* Spotify 1.3 currently reports its saved state as a checked "Add to
+   playlist" control. Keep the heart visible even during the brief period
+   before theme.js applies data-me3-like. */
+button[aria-label="Add to playlist" i][aria-checked]::before {
+  content: "favorite" !important;
+  color: var(--me3-like-color) !important;
+  font-family: "Material Symbols Rounded", sans-serif !important;
+  font-feature-settings: "liga";
+  font-variation-settings: "FILL" 1, "wght" 450, "GRAD" 0, "opsz" 24;
+}
+
+button[aria-label="Add to playlist" i][aria-checked] > * {
+  display: none !important;
+}
+
 /* native icon, Lottie tick, labels: all gone */
 [data-me3-like] > * {
   display: none !important;
@@ -1619,7 +1800,7 @@ button[data-me3-ctl]::before {
   height: 36px;
   translate: -50% -50%;
   border: 2px solid var(--me3-mauve);
-  border-radius: 50%;
+  border-radius: var(--me3-radius-circle);
   pointer-events: none;
   animation: me3-heart-ring 620ms var(--me3-ease-std) both;
 }
@@ -1688,6 +1869,31 @@ button[data-me3-ctl]::before {
   color: var(--me3-mauve) !important;
 }
 
+/* Encore 1.3 toasts use live regions instead of the old notistack wrapper. */
+:is([role="status"], [role="alert"], [aria-live="polite"], [aria-live="assertive"]):has([data-encore-id="text"]) {
+  --background-base: var(--me3-surface) !important;
+  --background-highlight: var(--me3-surface-1) !important;
+  --background-press: var(--me3-surface-2) !important;
+  --text-base: var(--me3-text) !important;
+  --text-subdued: var(--me3-subtext) !important;
+  --essential-base: var(--me3-text) !important;
+  color: var(--me3-text) !important;
+  background: var(--me3-surface) !important;
+  background-image: none !important;
+  border: 1px solid rgb(203 166 247 / 22%) !important;
+  border-radius: var(--me3-radius-medium) !important;
+  box-shadow: 0 12px 32px rgb(17 17 27 / 45%) !important;
+}
+
+:is([role="status"], [role="alert"], [aria-live="polite"], [aria-live="assertive"]):has([data-encore-id="text"]) [data-encore-id="text"] {
+  color: var(--me3-text) !important;
+}
+
+:is([role="status"], [role="alert"], [aria-live="polite"], [aria-live="assertive"]):has([data-encore-id="text"]) > * {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
 .notistack-MuiContent-error,
 .notistack-Snackbar [data-variant="error"],
 .notistack-Snackbar :is(.notistack-MuiContent-error, [data-variant="error"]) :is(.BoxComponent-box-elevated, [class*="BoxComponent"]),
@@ -1719,11 +1925,11 @@ button[data-me3-ctl]::before {
   --os-size: 14px;
   --os-padding-perpendicular: 3px;
   --os-padding-axis: 4px;
-  --os-track-border-radius: 999px;
+  --os-track-border-radius: var(--me3-radius-pill);
   --os-track-bg: transparent;
   --os-track-bg-hover: transparent;
   --os-track-bg-active: transparent;
-  --os-handle-border-radius: 999px;
+  --os-handle-border-radius: var(--me3-radius-pill);
   --os-handle-bg: var(--me3-surface-2);
   --os-handle-bg-hover: var(--me3-mauve);
   --os-handle-bg-active: var(--me3-mauve);

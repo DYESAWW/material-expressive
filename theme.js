@@ -27,9 +27,76 @@
     if (!scope || scope.nodeType !== 1) return [];
     return (scope.matches(selector) ? [scope] : []).concat($$(selector, scope));
   };
-  const libraryApi = () => {
-    try { return window.Spicetify.Platform.LibraryAPI; } catch (_) { return null; }
-  };
+
+  /*
+     Spotify 1.3 replaced several CSS-module classes with hashes. Spicetify
+     2.46.4 maps many of them, but not every platform/build combination maps
+     every class used by this theme. These aliases use Spotify's stable test
+     ids and roles so the existing CSS remains visually identical on both the
+     1.2 and 1.3 DOMs. They only add class names; no structure or style is
+     changed here.
+   */
+  const SPOTIFY_13_ALIASES = [
+    ["Root__top-container", 'div:has(> #Desktop_LeftSidebar_Id)'],
+    ["Root__globalNav", "#global-nav-bar"],
+    ["Root__nav-bar", "#Desktop_LeftSidebar_Id > nav"],
+    ["main-yourLibraryX-libraryContainer", "#Desktop_LeftSidebar_Id .YourLibraryX"],
+    ["main-yourLibraryX-libraryRootlist", "#Desktop_LeftSidebar_Id .YourLibraryX [role=grid]"],
+    ["Root__main-view", "#main-view"],
+    ["main-view-container", "#main-view"],
+    ["main-view-container__scroll-node-child", "#main-view main"],
+    ["Root__now-playing-bar", '[data-testid="now-playing-bar"]'],
+    ["main-nowPlayingBar-container", '[data-testid="now-playing-bar"] > div'],
+    ["main-nowPlayingBar-nowPlayingBar", '[data-testid="now-playing-bar"] > div'],
+    ["main-nowPlayingBar-left", '[data-testid="now-playing-bar"] > div > div:has([data-testid="now-playing-widget"])'],
+    ["main-nowPlayingBar-center", '[data-testid="now-playing-bar"] > div > div:has(> [data-testid="player-controls"])'],
+    ["main-nowPlayingBar-right", '[data-testid="now-playing-bar"] > div > div:has([data-testid="volume-bar"])'],
+    ["main-nowPlayingWidget-nowPlaying", '[data-testid="now-playing-widget"]'],
+    ["main-nowPlayingWidget-coverArt", '[data-testid="CoverSlotCollapsed__container"]'],
+    ["main-nowPlayingWidget-coverArtContainer", '[data-testid="CoverSlotCollapsed__container"]'],
+    ["main-coverSlotCollapsed-container", '[data-testid="CoverSlotCollapsed__container"]'],
+    ["cover-art", '[data-testid="CoverSlotCollapsed__container"] > div'],
+    ["cover-art-image", '[data-testid="CoverSlotCollapsed__container"] img'],
+    ["playback-bar", '[data-testid="player-controls"] > div:has([data-testid="playback-progressbar"])'],
+    ["playback-progressbar", '[data-testid="playback-progressbar"]'],
+    ["progress-bar__bg", '[data-testid="progress-bar-background"]'],
+    ["progress-bar__slider", '[data-testid="progress-bar-background"] > div:nth-child(2)'],
+    ["playback-bar__progress-time-elapsed", '[data-testid="playback-position"]'],
+    ["playback-bar__progress-time", '[data-testid="playback-duration"]'],
+    ["player-controls__buttons", '[data-testid="general-controls"]'],
+    ["main-trackList-trackList", '#main-view [role="grid"]:has(> [role="row"])'],
+    ["main-trackList-trackListRow", '#main-view [role="row"]:has([role="gridcell"])'],
+    ["main-trackList-rowSectionStart", '#main-view [role="row"] [role="gridcell"]:has(> img)'],
+    ["main-trackList-rowImage", '#main-view [role="row"] [role="gridcell"] > img'],
+    ["main-trackList-rowHeartButton", '#main-view [role="row"] button[aria-label*="library" i], #main-view [role="row"] button[aria-label*="liked" i]'],
+    ["main-entityHeader-container", '[data-testid="entity-header"]'],
+    ["main-entityHeader-title", '[data-testid="entityTitle"], [data-testid="adaptiveEntityTitle"]'],
+    ["main-actionBar-ActionBar", '[data-testid="action-bar"], [data-testid="action-bar-row"]'],
+    ["main-shelf-shelf", 'section[data-testid="component-shelf"], section.Shelf'],
+  ];
+
+  function applySpotify13Aliases(scope = doc) {
+    if (!scope || !scope.querySelectorAll) return;
+    SPOTIFY_13_ALIASES.forEach(([className, selector]) => {
+      const matches = scope.nodeType === 1 && scope.matches(selector) ? [scope] : [];
+      scope.querySelectorAll(selector).forEach((el) => matches.push(el));
+      matches.forEach((el) => el.classList.add(className));
+    });
+  }
+
+  function applySpotify13RootAliases() {
+    const roots = [
+      $("#main-view"),
+      $('[data-testid="now-playing-bar"]'),
+      $("#Desktop_LeftSidebar_Id"),
+      $("#global-nav-bar"),
+    ];
+    roots.forEach((el) => {
+      if (!el) return;
+      applySpotify13Aliases(el);
+      if (el.parentElement) applySpotify13Aliases(el.parentElement);
+    });
+  }
 
   // The Player wrapper can exist before its internal state is assigned on
   // macOS. Treat that short window as unavailable instead of letting one
@@ -80,7 +147,7 @@
   /* ------------------------------------------------------------------
      1. WAVY SEEK BAR
      ------------------------------------------------------------------ */
-  const SEEK_HOST = ".playback-bar .playback-progressbar";
+  const SEEK_HOST = '.playback-bar .playback-progressbar, [data-testid="playback-progressbar"]';
   const SEEK_UPDATE_MS = 100;
   const seek = {
     host: null,
@@ -245,13 +312,13 @@
     ".main-addButton-button",
     'button[data-testid="add-button"]',
     'button[aria-label="Add to Your Library" i]',
+    'button[aria-label="Add to playlist" i]',
     ...SAVE_LABELS,
   ].join(",");
 
   const ANY_LIKE_CLICK = ROW_LIKE + "," + OTHER_LIKE + ",.main-nowPlayingWidget-plusButton,.main-nowPlayingWidget-plusButton *";
 
   const previousLike = new WeakMap();
-  const savedCache = new Map(); // track uri -> boolean
   let likeRefreshTimer = 0;
 
   function looksSaved(btn) {
@@ -298,93 +365,29 @@
     );
   }
 
-  async function savedByUris(uris) {
-    const api = libraryApi();
-    if (!api || !uris.length) return null;
-    try {
-      const result = await api.contains(...uris);
-      return Array.isArray(result) ? result.map(Boolean) : null;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  async function syncNowPlayingLike() {
+  function syncNowPlayingLike() {
     const btn = nowPlayingLikeButton();
     if (!btn) return;
-    const P = player();
-    const item = P && P.data && (P.data.item || P.data.track);
-    const res = item && item.uri ? await savedByUris([item.uri]) : null;
-    setLike(btn, res ? res[0] : looksSaved(btn));
-  }
-
-  function trackUriOfRow(row) {
-    const a = row.querySelector('a[href*="/track/"]');
-    const m = a && /\/track\/([A-Za-z0-9]+)/.exec(a.getAttribute("href") || "");
-    return m ? "spotify:track:" + m[1] : null;
-  }
-
-  const pendingLikeRows = new Set();
-  let rowSyncBusy = false;
-
-  function queueRowLikeSync(scope) {
-    elementsMatching(scope, ".main-trackList-trackListRow").forEach((row) => pendingLikeRows.add(row));
-    const parentRow = scope && scope.closest && scope.closest(".main-trackList-trackListRow");
-    if (parentRow) pendingLikeRows.add(parentRow);
-    if (!rowSyncBusy && pendingLikeRows.size) void syncQueuedRowLikes();
-  }
-
-  async function syncQueuedRowLikes() {
-    if (rowSyncBusy) return;
-    rowSyncBusy = true;
-    try {
-      while (pendingLikeRows.size) {
-        const rows = Array.from(pendingLikeRows);
-        pendingLikeRows.clear();
-        const items = [];
-        const need = new Set();
-
-        rows.forEach((row) => {
-          if (!row.isConnected) return;
-          const btn = $(ROW_LIKE, row);
-          if (!btn) return;
-          const uri = trackUriOfRow(row);
-          items.push({ btn, uri });
-          if (uri && !savedCache.has(uri)) need.add(uri);
-        });
-
-        if (need.size) {
-          const list = Array.from(need);
-          const res = await savedByUris(list);
-          if (res) list.forEach((uri, i) => savedCache.set(uri, res[i]));
-        }
-
-        items.forEach(({ btn, uri }) =>
-          setLike(btn, uri && savedCache.has(uri) ? savedCache.get(uri) : looksSaved(btn))
-        );
-      }
-    } finally {
-      rowSyncBusy = false;
-      if (pendingLikeRows.size) void syncQueuedRowLikes();
-    }
+    // getHeart is the documented Player API. The old LibraryAPI lookup was
+    // an internal Platform API and is not consistently present in Spotify 1.3.
+    const saved = playerCall("getHeart", null);
+    setLike(btn, typeof saved === "boolean" ? saved : looksSaved(btn));
   }
 
   function syncOtherLikes(scope) {
     const view = scope || $(".main-view-container") || doc.body;
     if (!view) return;
     const np = nowPlayingLikeButton();
-    elementsMatching(view, OTHER_LIKE).forEach((btn) => {
-      if (btn === np || btn.closest(".main-trackList-trackListRow")) return;
+    elementsMatching(view, ROW_LIKE + "," + OTHER_LIKE).forEach((btn) => {
+      if (btn === np) return;
       setLike(btn, looksSaved(btn));
     });
   }
 
   function refreshAllLikes() {
-    savedCache.clear();
     const view = $(".main-view-container") || doc.body;
     syncNowPlayingLike();
     syncOtherLikes(view);
-    queueRowLikeSync(view);
   }
 
   function scheduleLikeRefresh(delay = 500) {
@@ -393,10 +396,6 @@
       likeRefreshTimer = 0;
       refreshAllLikes();
     }, delay);
-  }
-
-  function onLibraryOperationComplete() {
-    scheduleLikeRefresh(100);
   }
 
   doc.addEventListener(
@@ -639,11 +638,12 @@
     }
   }
 
-  function syncControls() {
+  function syncControls(playing = playerCall("isPlaying", false)) {
     $$(".player-controls__buttons").forEach((row) => {
       const buttons = $$("button", row);
       if (buttons.length !== CONTROL_ROLES.length) return;
       buttons.forEach((btn, i) => setData(btn, "me3Ctl", CONTROL_ROLES[i]));
+      setData(buttons[2], "me3State", playing ? "playing" : "paused");
       const modes = playerModes(buttons[0]);
       if (!modes) return;
       setData(buttons[0], "me3State", modes.shuffle);
@@ -681,12 +681,15 @@
   const mainPass = debounce(() => {
     const scopes = Array.from(pendingMainScopes);
     pendingMainScopes.clear();
+    // New rows are mounted below the mutation target. Re-alias the view once
+    // so selectors rooted at #main-view also reach those descendants.
+    const mainView = $(".Root__main-view");
+    if (mainView) applySpotify13Aliases(mainView);
     scopes.forEach((scope) => {
       if (!scope.isConnected) return;
       tagShelvesIn(scope);
       tagTrackLists(scope);
       syncOtherLikes(scope);
-      queueRowLikeSync(scope);
     });
     scheduleArtUpdate();
   }, 100);
@@ -698,14 +701,15 @@
 
   function initialiseMain(rootEl) {
     const view = $(".main-view-container", rootEl) || rootEl;
+    applySpotify13Aliases(view);
     tagShelves(view);
     tagTrackLists(view);
     syncOtherLikes(view);
-    queueRowLikeSync(view);
     scheduleArtUpdate();
   }
 
   const playerPass = debounce(() => {
+    applySpotify13Aliases($('[data-testid="now-playing-bar"]') || doc);
     mountSeek();
     syncControls();
     const np = nowPlayingLikeButton();
@@ -722,27 +726,42 @@
   }
 
   function watchRoots() {
+    applySpotify13RootAliases();
     watch(".Root__main-view", onMainMutations, initialiseMain);
     watch(".Root__now-playing-bar", playerPass);
     syncLibraryCollapsed();
   }
 
+  const ROOT_MARKER = "#main-view, [data-testid=\"now-playing-bar\"], #Desktop_LeftSidebar_Id, #global-nav-bar";
+  function rootWasAdded(node) {
+    return node && node.nodeType === 1 && (node.matches(ROOT_MARKER) || !!$(ROOT_MARKER, node));
+  }
+
+  function watchRootReplacements() {
+    new MutationObserver((records) => {
+      if (records.some((record) => Array.from(record.addedNodes).some(rootWasAdded))) watchRoots();
+    }).observe(doc.body, { childList: true, subtree: true });
+  }
+
   let apiBound = false;
   function bindSpicetify(tries = 0) {
     const S = window.Spicetify;
-    if (!(S && S.Player && S.Platform)) {
+    if (!(S && S.Player)) {
       if (tries < 120) setTimeout(() => bindSpicetify(tries + 1), 300);
       return;
     }
     if (apiBound) return;
     apiBound = true;
 
-    const resync = () => {
-      seek.playing = detectPlaying();
+    const resync = (event) => {
+      const playing = event && event.data && typeof event.data.isPaused === "boolean"
+        ? !event.data.isPaused
+        : detectPlaying();
+      seek.playing = playing;
       paintSeek();
       kickSeek();
       scheduleArtUpdate();
-      syncControls();
+      syncControls(playing);
     };
     S.Player.addEventListener("onplaypause", resync);
     S.Player.addEventListener("onprogress", paintSeek);
@@ -751,22 +770,13 @@
       syncNowPlayingLike();
     });
 
-    try {
-      libraryApi().getEvents().addListener("operation_complete", onLibraryOperationComplete);
-    } catch (_) { /* older clients: the click handler covers it */ }
-
-    try {
-      const api = S.Platform.PlayerAPI;
-      (api.getEvents ? api.getEvents() : api._events).addListener("update", syncControls);
-    } catch (_) { /* the click handler and the 2 s check below cover it */ }
-
     seek.playing = detectPlaying();
     refreshAllLikes();
   }
 
   function start() {
     watchRoots();
-    setInterval(watchRoots, 2000); // roots can be re-created when layouts change
+    watchRootReplacements();
     bindSpicetify();
   }
 
