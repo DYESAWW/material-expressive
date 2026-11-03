@@ -50,9 +50,9 @@
   --me3-weight-body: 520;
   --me3-weight-strong: 720;
   --me3-weight-button: 600;
-  --me3-title-size: clamp(1.5rem, 5.8vw, 6.25rem);
+  --me3-title-size: clamp(1.5rem, 4.2vw, 4.5rem);
   --me3-title-weight: 800;
-  --me3-title-leading: 1.04;
+  --me3-title-leading: 1.2;
   --me3-title-tracking: -0.035em;
 
   /* Colour of a saved (liked) heart; set to var(--me3-mauve) for pure purple */
@@ -153,6 +153,12 @@
   background-image: none !important;
 }
 
+/* Keep off-screen carousel cards inside their own tonal surface. The scroll
+   container remains intact; only the shelf edge becomes the clipping edge. */
+:is(.main-shelf-shelf, [data-shelf="carousel"])[data-shelf="carousel"] {
+  overflow: hidden;
+}
+
 /* Nothing inside a shelf may paint a second surface. */
 :is(.main-shelf-shelf, [data-shelf], [data-shelf-collapsable], [data-me3-shelf]) :is(
   .main-shelf-shelf, [data-shelf], [data-shelf-collapsable], [data-me3-shelf],
@@ -169,11 +175,11 @@
   margin-block: 0 !important;
 }
 
-:is(.main-shelf-shelf, [data-shelf], [data-shelf-collapsable], [data-me3-shelf]) .main-card-card {
+:is(.main-shelf-shelf, [data-shelf], [data-shelf-collapsable], [data-me3-shelf]) :is(.main-card-card, [data-encore-id="card"]) {
   background: transparent !important;
 }
 
-:is(.main-shelf-shelf, [data-shelf], [data-shelf-collapsable], [data-me3-shelf]) .main-card-card:hover {
+:is(.main-shelf-shelf, [data-shelf], [data-shelf-collapsable], [data-me3-shelf]) :is(.main-card-card, [data-encore-id="card"]):hover {
   background: rgb(69 71 90 / 70%) !important;
 }
 
@@ -271,6 +277,7 @@ select,
 [class*="encore-text-headline"],
 h1, h2, h3, h4,
 .main-cardHeader-text,
+[data-encore-id="card"] [data-encore-id="text"],
 .main-trackList-rowTitle,
 .main-shelf-title {
   font-weight: var(--me3-weight-strong) !important;
@@ -293,9 +300,9 @@ button,
 
 .main-entityHeader-headerText {
   gap: 12px;
-  flex: 1 1 auto;
+  flex: 1 1 42rem;
   min-width: 0;
-  max-width: 100%;
+  max-width: min(100%, 64rem);
   overflow: visible !important;
 }
 
@@ -308,7 +315,8 @@ button,
   letter-spacing: var(--me3-title-tracking) !important;
   padding-block: 0.06em;
   display: block !important;
-  max-width: 100%;
+  width: min(100%, 64rem);
+  max-width: none;
   min-width: 0;
   white-space: normal !important;
   overflow: visible !important;
@@ -321,10 +329,17 @@ button,
   margin-block: 8px 12px !important;
 }
 
+/* Spotify 1.3's header no longer always exposes the legacy header-text
+   class. Preserve the same generous title measure through stable test ids. */
+[data-testid="entity-header"] :is([data-testid="entityTitle"], [data-testid="adaptiveEntityTitle"]) {
+  width: min(100%, 64rem);
+  max-width: none !important;
+}
+
 /* ---------------------------------------------------------------------
    5. Shape language and focus
    --------------------------------------------------------------------- */
-.main-card-card,
+:is(.main-card-card, [data-encore-id="card"]),
 .main-cardImageContainer,
 .main-trackList-trackList,
 .main-playlistEditDetailsModal-container,
@@ -389,20 +404,21 @@ input:focus-visible {
       every library thumbnail was a big part of the sidebar lag.
    --------------------------------------------------------------------- */
 
-.main-card-card {
+:is(.main-card-card, [data-encore-id="card"]) {
   position: relative;
   background: rgb(49 50 68 / 58%);
   transition: background-color 180ms ease, transform 240ms var(--me3-ease-std);
 }
 
-.main-card-card:hover {
+:is(.main-card-card, [data-encore-id="card"]):hover {
   background: var(--me3-surface) !important;
   transform: translateY(-2px);
 }
 
-.main-cardImageContainer,
+:is(.main-cardImageContainer, [data-encore-id="card"] > :is(a, div):first-child),
 .main-cardImageContainer img,
 .main-cardImageContainer div,
+[data-encore-id="card"] img,
 .main-trackList-rowImage,
 .main-trackList-rowImage img,
 .main-miniPlayer-coverArt,
@@ -760,22 +776,23 @@ input:focus-visible {
   accent-color: var(--me3-mauve) !important;
 }
 
-/* Fixed width: 160px normally, 230px when the volume-percentage plugin is present. */
+/* A responsive cap leaves space for transport and utility controls at every
+   window width, rather than forcing the player bar to overlap. */
 [data-testid="volume-bar"] {
-  --me3-vol-basis: 160px;
+  --me3-vol-basis: clamp(72px, 10vw, 132px);
   flex: 0 1 var(--me3-vol-basis) !important;
   width: var(--me3-vol-basis) !important;
-  max-width: none !important;
+  max-width: var(--me3-vol-basis) !important;
   min-width: 0;
   transition: none !important;
 }
 
 [data-testid="volume-bar"].volume-percentage-wrapper {
-  --me3-vol-basis: 230px;
+  --me3-vol-basis: clamp(112px, 14vw, 180px);
 }
 
 [data-testid="volume-bar"].volume-percentage-wrapper.inherit-flex {
-  --me3-vol-basis: 160px;
+  --me3-vol-basis: clamp(72px, 10vw, 132px);
 }
 
 .main-nowPlayingBar-volumeBar:not([data-testid="volume-bar"]) {
@@ -787,6 +804,11 @@ input:focus-visible {
 .volume-bar__slider-container {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+@media (max-width: 760px) {
+  [data-testid="volume-bar"] { --me3-vol-basis: clamp(56px, 12vw, 88px); }
+  [data-testid="volume-bar"].volume-percentage-wrapper { --me3-vol-basis: clamp(92px, 16vw, 120px); }
 }
 
 /* Optional "Volume Percentage" extension: sits right of the slider */
@@ -837,17 +859,17 @@ input:focus-visible {
   --fg-color: var(--me3-mauve);
 }
 
-.playback-bar :is(.x-progressBar-progressBarBg, .x-progressBar-background) {
+.playback-bar :is(.x-progressBar-progressBarBg, .x-progressBar-background, .progress-bar__bg) {
   background-color: var(--me3-surface-1) !important;
   border-radius: var(--me3-radius-pill) !important;
   overflow: hidden;
 }
 
-.playback-bar :is(.x-progressBar-foregroundWrapper, .x-progressBar-middleground, .x-progressBar-sliderArea) {
+.playback-bar :is(.x-progressBar-foregroundWrapper, .x-progressBar-middleground, .x-progressBar-sliderArea, .progress-bar__slider) {
   background: transparent !important;
 }
 
-.playback-bar :is(.x-progressBar-fillColor, .x-progressBar-foreground, .x-progressBar-progressFillColor) {
+.playback-bar :is(.x-progressBar-fillColor, .x-progressBar-foreground, .x-progressBar-progressFillColor, .progress-bar__slider) {
   background-color: var(--me3-mauve) !important;
   background-image: none !important;
   border-radius: var(--me3-radius-pill) !important;
@@ -1212,6 +1234,83 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   font-size: 24px !important;
   line-height: 1 !important;
   text-align: center;
+}
+
+/* Spotify 1.3 action bars expose the page play button as an Encore primary
+   button, without the former data-testid. Give it the identical cookie form. */
+:is(
+  [data-testid="entity-header"],
+  [data-testid="action-bar"],
+  [data-testid="action-bar-row"],
+  section[data-testid$="-page"]
+) button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i]) {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto;
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  margin: 0;
+  padding: 0 !important;
+  color: var(--me3-crust) !important;
+  background: var(--me3-mauve) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  -webkit-mask: var(--me3-cookie-nine) center / 100% 100% no-repeat !important;
+  mask: var(--me3-cookie-nine) center / 100% 100% no-repeat !important;
+  transition: background-color 180ms ease, scale 240ms var(--me3-ease-spring) !important;
+}
+
+:is(
+  [data-testid="entity-header"],
+  [data-testid="action-bar"],
+  [data-testid="action-bar-row"],
+  section[data-testid$="-page"]
+) button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i]) > * {
+  display: none !important;
+}
+
+:is(
+  [data-testid="entity-header"],
+  [data-testid="action-bar"],
+  [data-testid="action-bar-row"],
+  section[data-testid$="-page"]
+) button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i])::before {
+  content: "play_arrow" !important;
+  display: block !important;
+  width: 1em;
+  height: 1em;
+  color: var(--me3-crust) !important;
+  font-family: "Material Symbols Rounded", sans-serif !important;
+  font-size: 24px !important;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1 !important;
+  font-feature-settings: "liga";
+  font-variation-settings: "FILL" 1, "wght" 450, "GRAD" 0, "opsz" 24;
+}
+
+:is(
+  [data-testid="entity-header"],
+  [data-testid="action-bar"],
+  [data-testid="action-bar-row"],
+  section[data-testid$="-page"]
+) button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i]):is(:hover, :focus-visible) {
+  background: var(--me3-lavender) !important;
+  scale: 1.06;
+}
+
+:is(
+  [data-testid="entity-header"],
+  [data-testid="action-bar"],
+  [data-testid="action-bar-row"],
+  section[data-testid$="-page"]
+) button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i]):active {
+  scale: .94;
 }
 
 /* ---------------------------------------------------------------------
@@ -1586,6 +1685,21 @@ button[data-me3-ctl]::before {
 
 [data-me3-like="on"] { --me3-fill: 1; }
 
+/* Spotify 1.3 currently reports its saved state as a checked "Add to
+   playlist" control. Keep the heart visible even during the brief period
+   before theme.js applies data-me3-like. */
+button[aria-label="Add to playlist" i][aria-checked]::before {
+  content: "favorite" !important;
+  color: var(--me3-like-color) !important;
+  font-family: "Material Symbols Rounded", sans-serif !important;
+  font-feature-settings: "liga";
+  font-variation-settings: "FILL" 1, "wght" 450, "GRAD" 0, "opsz" 24;
+}
+
+button[aria-label="Add to playlist" i][aria-checked] > * {
+  display: none !important;
+}
+
 /* native icon, Lottie tick, labels: all gone */
 [data-me3-like] > * {
   display: none !important;
@@ -1686,6 +1800,31 @@ button[data-me3-ctl]::before {
 
 .notistack-Snackbar :is(a, button) {
   color: var(--me3-mauve) !important;
+}
+
+/* Encore 1.3 toasts use live regions instead of the old notistack wrapper. */
+:is([role="status"], [role="alert"], [aria-live="polite"], [aria-live="assertive"]):has([data-encore-id="text"]) {
+  --background-base: var(--me3-surface) !important;
+  --background-highlight: var(--me3-surface-1) !important;
+  --background-press: var(--me3-surface-2) !important;
+  --text-base: var(--me3-text) !important;
+  --text-subdued: var(--me3-subtext) !important;
+  --essential-base: var(--me3-text) !important;
+  color: var(--me3-text) !important;
+  background: var(--me3-surface) !important;
+  background-image: none !important;
+  border: 1px solid rgb(203 166 247 / 22%) !important;
+  border-radius: var(--me3-radius-medium) !important;
+  box-shadow: 0 12px 32px rgb(17 17 27 / 45%) !important;
+}
+
+:is([role="status"], [role="alert"], [aria-live="polite"], [aria-live="assertive"]):has([data-encore-id="text"]) [data-encore-id="text"] {
+  color: var(--me3-text) !important;
+}
+
+:is([role="status"], [role="alert"], [aria-live="polite"], [aria-live="assertive"]):has([data-encore-id="text"]) > * {
+  background-color: transparent !important;
+  background-image: none !important;
 }
 
 .notistack-MuiContent-error,
