@@ -638,11 +638,12 @@
     }
   }
 
-  function syncControls() {
+  function syncControls(playing = playerCall("isPlaying", false)) {
     $$(".player-controls__buttons").forEach((row) => {
       const buttons = $$("button", row);
       if (buttons.length !== CONTROL_ROLES.length) return;
       buttons.forEach((btn, i) => setData(btn, "me3Ctl", CONTROL_ROLES[i]));
+      setData(buttons[2], "me3State", playing ? "playing" : "paused");
       const modes = playerModes(buttons[0]);
       if (!modes) return;
       setData(buttons[0], "me3State", modes.shuffle);
@@ -741,12 +742,15 @@
     if (apiBound) return;
     apiBound = true;
 
-    const resync = () => {
-      seek.playing = detectPlaying();
+    const resync = (event) => {
+      const playing = event && event.data && typeof event.data.isPaused === "boolean"
+        ? !event.data.isPaused
+        : detectPlaying();
+      seek.playing = playing;
       paintSeek();
       kickSeek();
       scheduleArtUpdate();
-      syncControls();
+      syncControls(playing);
     };
     S.Player.addEventListener("onplaypause", resync);
     S.Player.addEventListener("onprogress", paintSeek);

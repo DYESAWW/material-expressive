@@ -1030,6 +1030,8 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
 .Root__now-playing-bar .player-controls__buttons button[data-me3-ctl="next"]::before { content: "skip_next"; }
 .Root__now-playing-bar .player-controls__buttons button[data-me3-ctl="repeat"]::before { content: "repeat"; }
 .Root__now-playing-bar .player-controls__buttons button[data-me3-ctl="repeat"]:is([data-me3-state="one"], :not([data-me3-state]):is([aria-label="Disable repeat" i], [aria-checked="mixed"]))::before { content: "repeat_one"; }
+.Root__now-playing-bar .player-controls__buttons button[data-testid="control-button-playpause"][data-me3-state="paused"]::before { content: "play_arrow" !important; }
+.Root__now-playing-bar .player-controls__buttons button[data-testid="control-button-playpause"][data-me3-state="playing"]::before { content: "pause" !important; }
 
 /* native icon wrappers and Spotify's "active dot": only our glyph stays */
 .Root__now-playing-bar .player-controls__buttons :is(button[data-me3-ctl], button[data-testid="control-button-playpause"]) > * {
@@ -1191,6 +1193,12 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   min-width: 48px !important;
   height: 48px !important;
   min-height: 48px !important;
+}
+
+/* Spotify 1.3's sticky action row supplies its own vertical spacing. Keep the
+   row flush with its surrounding content while retaining horizontal spacing. */
+:is(.main-actionBar-ActionBarRow, [data-testid="action-bar-row"]) {
+  margin-block: 0 !important;
 }
 
 :is(
