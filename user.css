@@ -36,6 +36,15 @@
   --me3-radius-medium: 18px;
   --me3-radius-large: 28px;
   --me3-radius-pill: 999px;
+  --me3-radius-none: 0;
+  --me3-radius-circle: 50%;
+
+  /* Artwork shapes remain visually consistent from thumbnails to full covers. */
+  --me3-shape-artwork: 12%;
+  --me3-shape-card-artwork: 22%;
+  --me3-shape-artwork-feature: 34% 18% 34% 18%;
+  --me3-shape-artwork-library: 32% 18% 32% 18%;
+  --me3-shape-artwork-collapsed: 16px;
 
   /* M3 Expressive motion */
   --me3-ease-spring: cubic-bezier(.34, 1.56, .64, 1);
@@ -168,7 +177,7 @@
   [data-testid*="carousel" i]
 ) {
   border: 0 !important;
-  border-radius: 0 !important;
+  border-radius: var(--me3-radius-none) !important;
   background: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
@@ -410,13 +419,38 @@ input:focus-visible {
 .main-miniPlayer-coverArt img,
 .cover-art,
 .cover-art-image {
-  border-radius: 22% !important;
+  border-radius: var(--me3-shape-card-artwork) !important;
   overflow: hidden;
+}
+
+/* Spotify supplies a fallback cover colour on several artwork shells. Clip
+   the shell and keep it transparent, otherwise that colour remains visible in
+   the rounded corners while the image itself is correctly rounded. */
+:is(
+  .main-cardImageContainer,
+  .main-cardImage-imageWrapper,
+  .main-trackList-rowImage,
+  .main-miniPlayer-coverArt,
+  .main-entityHeader-image,
+  [data-testid="cover-art-slot"],
+  [data-testid="cover-art-container"],
+  [data-testid="cover-drop-target"],
+  [data-testid="cover-art-button"],
+  .main-nowPlayingWidget-coverArtContainer,
+  .main-nowPlayingWidget-coverArt,
+  .main-coverSlotCollapsed-container
+) {
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+[data-testid="cover-art-slot"] :is(div, a) {
+  background: transparent !important;
 }
 
 /* Header artwork keeps its playful tilt. */
 .main-entityHeader-image {
-  border-radius: 34% 18% 34% 18% !important;
+  border-radius: var(--me3-shape-artwork-feature) !important;
   overflow: hidden;
   transform: rotate(-3deg);
   box-shadow: 0 14px 36px rgb(17 17 27 / 32%);
@@ -480,7 +514,7 @@ input:focus-visible {
 .main-yourLibraryX-libraryItem [data-testid="cover-art-image"],
 .main-rootlist-rootlistItem img,
 .main-rootlist-rootlistItem [data-testid="cover-art-image"] {
-  border-radius: 32% 18% 32% 18% !important;
+  border-radius: var(--me3-shape-artwork-library) !important;
   transform: rotate(-3deg);
 }
 
@@ -497,7 +531,7 @@ input:focus-visible {
 [data-testid="cover-art-slot"],
 [data-testid="cover-art-slot"] *,
 :is(.Root__right-sidebar, #Desktop_PanelContainer_Id, .NowPlayingView) .e-10860-legacy-list-row__header-side img {
-  border-radius: 12% !important;
+  border-radius: var(--me3-shape-artwork) !important;
 }
 
 [data-testid="cover-art-slot"],
@@ -524,7 +558,7 @@ input:focus-visible {
   margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
-  border-radius: 0 !important;
+  border-radius: var(--me3-radius-none) !important;
   background: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
@@ -593,7 +627,7 @@ input:focus-visible {
   padding: 0 !important;
   overflow: hidden !important;
   border: 0 !important;
-  border-radius: 34% 18% 34% 18% !important;
+  border-radius: var(--me3-shape-artwork-feature) !important;
   background: transparent !important;
   box-shadow: none !important;
   transform: none !important;
@@ -649,7 +683,7 @@ input:focus-visible {
   margin: 0 !important;
   padding: 0 !important;
   overflow: hidden;
-  border-radius: 16px !important;
+  border-radius: var(--me3-shape-artwork-collapsed) !important;
   transform: none !important;
   rotate: none !important;
   scale: none !important;
@@ -662,7 +696,7 @@ input:focus-visible {
   width: 100% !important;
   height: 100% !important;
   margin: 0 !important;
-  border-radius: 0 !important;
+  border-radius: var(--me3-radius-none) !important;
   transform: none !important;
   clip-path: none !important;
 }
@@ -672,7 +706,7 @@ input:focus-visible {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover;
-  border-radius: 0 !important;
+  border-radius: var(--me3-radius-none) !important;
   transform: none !important;
   clip-path: none !important;
 }
@@ -729,7 +763,7 @@ input:focus-visible {
 :is([data-testid="volume-bar"], .main-nowPlayingBar-volumeBar, .volume-bar, .playback-bar__volume-bar),
 :is([data-testid="volume-bar"], .main-nowPlayingBar-volumeBar, .volume-bar, .playback-bar__volume-bar) * {
   --progress-bar-height: 8px !important;
-  --progress-bar-radius: 999px !important;
+  --progress-bar-radius: var(--me3-radius-pill) !important;
   --bg-color: var(--me3-surface-1) !important;
   --fg-color: var(--me3-mauve) !important;
 }
@@ -853,7 +887,7 @@ input:focus-visible {
 .playback-bar .playback-progressbar,
 .playback-bar .playback-progressbar * {
   --progress-bar-height: 6px;
-  --progress-bar-radius: 999px;
+  --progress-bar-radius: var(--me3-radius-pill);
   --bg-color: var(--me3-surface-1);
   --fg-color: var(--me3-mauve);
 }
@@ -956,7 +990,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   top: 0;
   width: 4px;
   height: 4px;
-  border-radius: 50%;
+  border-radius: var(--me3-radius-circle);
   background: var(--me3-mauve);
 }
 
@@ -1050,7 +1084,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   width: auto !important;
   height: auto !important;
   margin: 0;
-  border-radius: 0;
+  border-radius: var(--me3-radius-none);
   background: none !important;
   transform: none !important;
   font-size: 22px;
@@ -1095,7 +1129,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   width: 4px;
   height: 4px;
   translate: -50% 0;
-  border-radius: 50%;
+  border-radius: var(--me3-radius-circle);
   background: currentColor;
 }
 
@@ -1156,7 +1190,7 @@ html.me3-seek-ready .playback-bar .playback-progressbar > :not(.me3-seek) {
   background: var(--me3-mauve) !important;
   background-image: none !important;
   border: 0 !important;
-  border-radius: 0 !important;
+  border-radius: var(--me3-radius-none) !important;
   box-shadow: none !important;
   outline-offset: 0;
   clip-path: none !important;
@@ -1291,7 +1325,7 @@ button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i])::bef
   color: var(--me3-crust) !important;
   background: var(--me3-mauve) !important;
   border: 0 !important;
-  border-radius: 0 !important;
+  border-radius: var(--me3-radius-none) !important;
   box-shadow: none !important;
   -webkit-mask: var(--me3-cookie-nine) center / 100% 100% no-repeat !important;
   mask: var(--me3-cookie-nine) center / 100% 100% no-repeat !important;
@@ -1390,7 +1424,7 @@ button[data-encore-id="buttonPrimary"]:has(> [class*="button-icon-only" i])::bef
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  border-radius: 22%;
+  border-radius: var(--me3-shape-card-artwork);
   color: var(--me3-text);
   background: rgb(17 17 27 / 58%);
   opacity: 0;
@@ -1766,7 +1800,7 @@ button[aria-label="Add to playlist" i][aria-checked] > * {
   height: 36px;
   translate: -50% -50%;
   border: 2px solid var(--me3-mauve);
-  border-radius: 50%;
+  border-radius: var(--me3-radius-circle);
   pointer-events: none;
   animation: me3-heart-ring 620ms var(--me3-ease-std) both;
 }
@@ -1891,11 +1925,11 @@ button[aria-label="Add to playlist" i][aria-checked] > * {
   --os-size: 14px;
   --os-padding-perpendicular: 3px;
   --os-padding-axis: 4px;
-  --os-track-border-radius: 999px;
+  --os-track-border-radius: var(--me3-radius-pill);
   --os-track-bg: transparent;
   --os-track-bg-hover: transparent;
   --os-track-bg-active: transparent;
-  --os-handle-border-radius: 999px;
+  --os-handle-border-radius: var(--me3-radius-pill);
   --os-handle-bg: var(--me3-surface-2);
   --os-handle-bg-hover: var(--me3-mauve);
   --os-handle-bg-active: var(--me3-mauve);
