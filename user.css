@@ -155,7 +155,7 @@
 
 /* Keep off-screen carousel cards inside their own tonal surface. The scroll
    container remains intact; only the shelf edge becomes the clipping edge. */
-:is(.main-shelf-shelf, [data-shelf="carousel"])[data-shelf="carousel"] {
+[data-shelf="carousel"] {
   overflow: hidden;
 }
 
@@ -219,21 +219,6 @@
 )::after {
   background-color: transparent !important;
   background-image: none !important;
-}
-
-/* Current Home grid carousels use a separate wrapper for their side overlays.
-   Keep the scroll-edge cue, but fade it with the theme surface instead of
-   Spotify's black gradient. */
-.W7ETd1fZHm0MV0Jqtjeu.wlt29eHDgK8xhXU4uIYM.VdoAFBSgMkSkMmW0NgAk::before,
-.W7ETd1fZHm0MV0Jqtjeu.wlt29eHDgK8xhXU4uIYM.VdoAFBSgMkSkMmW0NgAk > .JIrO_Kklclbf_mnPX9Dh::before {
-  background-color: transparent !important;
-  background-image: linear-gradient(90deg, var(--me3-surface), transparent) !important;
-}
-
-.W7ETd1fZHm0MV0Jqtjeu.wlt29eHDgK8xhXU4uIYM.VdoAFBSgMkSkMmW0NgAk::after,
-.W7ETd1fZHm0MV0Jqtjeu.wlt29eHDgK8xhXU4uIYM.VdoAFBSgMkSkMmW0NgAk > .JIrO_Kklclbf_mnPX9Dh::after {
-  background-color: transparent !important;
-  background-image: linear-gradient(270deg, var(--me3-surface), transparent) !important;
 }
 
 /* Carousel arrows */
@@ -490,7 +475,7 @@ input:focus-visible {
   }
 }
 
-/* Preserve the old sidebar artwork treatment and Spotify's native row sizing. */
+/* Preserve the existing left-library artwork treatment and row sizing. */
 .main-yourLibraryX-libraryItem img,
 .main-yourLibraryX-libraryItem [data-testid="cover-art-image"],
 .main-rootlist-rootlistItem img,
@@ -504,6 +489,19 @@ input:focus-visible {
 .main-rootlist-rootlistItem:hover img,
 .main-rootlist-rootlistItem:hover [data-testid="cover-art-image"] {
   transform: rotate(0deg);
+}
+
+/* Spotify 1.3 uses a separate cover-art slot for the right-side Now Playing
+   view. Its covers and list-row art use a slightly fuller M3 rounded square. */
+[data-testid="cover-art-slot"],
+[data-testid="cover-art-slot"] :is([data-testid="cover-drop-target"], a, img),
+:is(.Root__right-sidebar, #Desktop_PanelContainer_Id, .NowPlayingView) .e-10860-legacy-list-row__header-side img {
+  border-radius: 22px !important;
+}
+
+[data-testid="cover-art-slot"],
+[data-testid="cover-art-slot"] [data-testid="cover-drop-target"] {
+  overflow: hidden;
 }
 
 /* ---------------------------------------------------------------------

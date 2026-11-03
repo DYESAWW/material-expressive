@@ -732,6 +732,17 @@
     syncLibraryCollapsed();
   }
 
+  const ROOT_MARKER = "#main-view, [data-testid=\"now-playing-bar\"], #Desktop_LeftSidebar_Id, #global-nav-bar";
+  function rootWasAdded(node) {
+    return node && node.nodeType === 1 && (node.matches(ROOT_MARKER) || !!$(ROOT_MARKER, node));
+  }
+
+  function watchRootReplacements() {
+    new MutationObserver((records) => {
+      if (records.some((record) => Array.from(record.addedNodes).some(rootWasAdded))) watchRoots();
+    }).observe(doc.body, { childList: true, subtree: true });
+  }
+
   let apiBound = false;
   function bindSpicetify(tries = 0) {
     const S = window.Spicetify;
@@ -765,7 +776,7 @@
 
   function start() {
     watchRoots();
-    setInterval(watchRoots, 2000); // roots can be re-created when layouts change
+    watchRootReplacements();
     bindSpicetify();
   }
 
