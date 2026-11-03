@@ -492,16 +492,16 @@ input:focus-visible {
 }
 
 /* Keep every right-sidebar cover on the same compact M3 rounded-square shape.
-   The cover-art slot is the reference artwork; its list-row counterparts use
-   the same radius rather than a larger, pill-like curve. */
+   A proportional corner keeps the 48px list thumbnails visually identical to
+   the large Now Playing cover instead of making the thumbnails look rounder. */
 [data-testid="cover-art-slot"],
-[data-testid="cover-art-slot"] :is([data-testid="cover-drop-target"], a, img),
+[data-testid="cover-art-slot"] *,
 :is(.Root__right-sidebar, #Desktop_PanelContainer_Id, .NowPlayingView) .e-10860-legacy-list-row__header-side img {
-  border-radius: var(--me3-radius-small) !important;
+  border-radius: 12% !important;
 }
 
 [data-testid="cover-art-slot"],
-[data-testid="cover-art-slot"] [data-testid="cover-drop-target"] {
+[data-testid="cover-art-slot"] * {
   overflow: hidden;
 }
 
